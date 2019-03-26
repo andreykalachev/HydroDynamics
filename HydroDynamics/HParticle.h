@@ -10,7 +10,7 @@ using namespace std;
 struct HParticle
 {
 public:
-	HParticle(double x, double y, double z) : mass(0.1), velocity(0, 0, 0), coordinates(x, y, z), density(1000), volume(0.1)
+	HParticle(double x, double y, double z) :  coordinates(x, y, z), density(1400), temperature(400)
 	{
 	}
 
@@ -19,11 +19,14 @@ public:
 	double mass;
 	double density;
 	double volume;
+	double temperature;
 	vector<double> tetsDensities;
 	vector<double> tetsVolumes;
+	vector<double> tetsTemperature;
 	vector<Point3> tetsVelocities;
 	vector<Point3> vectorsB;
 	vector<HParticle*> neighbours_points;
+
 
 	void clear()
 	{
