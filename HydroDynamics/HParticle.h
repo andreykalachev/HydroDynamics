@@ -25,6 +25,14 @@ public:
 	vector<Point3> vectorsB;
 	vector<HParticle*> neighbours_points;
 
+	void clear()
+	{
+		vectorsB.clear();
+		neighbours_points.clear();
+		tetsVelocities.clear();
+		tetsDensities.clear();
+		tetsVolumes.clear();
+	}
 };
 
 
