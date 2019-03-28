@@ -10,7 +10,7 @@ using namespace std;
 struct HParticle
 {
 public:
-	HParticle(double x, double y, double z) :  coordinates(x, y, z), density(1400), temperature(400)
+	HParticle(double x, double y, double z) :  coordinates(x, y, z), density(996.3), temperature(300), velocity(5e1, 5e1, 5e1), mass()
 	{
 	}
 
@@ -35,6 +35,7 @@ public:
 		tetsVelocities.clear();
 		tetsDensities.clear();
 		tetsVolumes.clear();
+		tetsTemperature.clear();
 	}
 };
 

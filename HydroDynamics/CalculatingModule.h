@@ -2,9 +2,9 @@
 
 //number of particles, new_particles
 const int n = 10;
-const int box_size = 100;
-const double h = 0.1;
-const double bolzmana = 1;
+const double box_size = 1e-9;
+const double h = 1e-13;
+const double bolzmana = 1.38e-23;
 std::vector<HParticle*> particles(n);
 vector<HParticle*> new_particles(n);
 
@@ -16,6 +16,10 @@ static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HPart
 
 static int positive_mod(int x, int y) {
 	return (x % y + y) % y;
+}
+
+static double positive_mod(double x, double y) {
+	return fmod(fmod(x, y) + y, y);
 }
 
 double calcTetVolume(vector<Tet3*>::value_type& tet)
@@ -110,8 +114,8 @@ void calcTempreture(int index)
 {
 	auto particle = particles[index];
 	double velocity_squared = pow(particle->velocity.x(), 2) + pow(particle->velocity.y(), 2) + pow(particle->velocity.z(), 2);
-	particle->temperature = particle->density * particle->volume * velocity_squared / bolzmana / 3;
-
+	new_particles[index]->temperature = particle->density * particle->volume * velocity_squared / bolzmana / 3;
+	//new_particles[index]->temperature = 300;
 }
 
 void calcNewDensity(int index)
