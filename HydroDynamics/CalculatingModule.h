@@ -4,6 +4,7 @@
 const int n = 10;
 const int box_size = 100;
 const double h = 0.1;
+const double bolzmana = 1;
 std::vector<HParticle*> particles(n);
 vector<HParticle*> new_particles(n);
 
@@ -19,7 +20,7 @@ static int positive_mod(int x, int y) {
 
 double calcTetVolume(vector<Tet3*>::value_type& tet)
 {
-	auto tet_volume = (tet->getCorner(0)->x() - tet->getCorner(1)->x()) * (tet->getCorner(2)->y() - tet->getCorner(1)->y()) * (tet->getCorner(3)->z() - tet->getCorner(1)->z())
+	double tet_volume = (tet->getCorner(0)->x() - tet->getCorner(1)->x()) * (tet->getCorner(2)->y() - tet->getCorner(1)->y()) * (tet->getCorner(3)->z() - tet->getCorner(1)->z())
 		+ (tet->getCorner(2)->x() - tet->getCorner(1)->x()) * (tet->getCorner(3)->y() - tet->getCorner(1)->y()) * (tet->getCorner(0)->z() - tet->getCorner(1)->z()) +
 		(tet->getCorner(0)->y() - tet->getCorner(1)->y()) * (tet->getCorner(2)->z() - tet->getCorner(1)->z()) * (tet->getCorner(3)->x() - tet->getCorner(1)->x()) -
 		(tet->getCorner(0)->z() - tet->getCorner(1)->z()) * (tet->getCorner(2)->y() - tet->getCorner(1)->y()) * (tet->getCorner(3)->x() - tet->getCorner(1)->x()) -
@@ -31,19 +32,19 @@ double calcTetVolume(vector<Tet3*>::value_type& tet)
 
 Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_volume)
 {
-	auto sign = corner % 2 == 0 ? 1 : -1;
+	int sign = corner % 2 == 0 ? 1 : -1;
 
-	auto _1 = positive_mod((corner + sign * 1), 4);
-	auto _2 = positive_mod((corner + sign * 2), 4);
-	auto _3 = positive_mod((corner + sign * 3), 4);
+	int _1 = positive_mod((corner + sign * 1), 4);
+	int _2 = positive_mod((corner + sign * 2), 4);
+	int _3 = positive_mod((corner + sign * 3), 4);
 
-	auto x = -(tet->getCorner(_2)->y() - tet->getCorner(_1)->y())*(tet->getCorner(_3)->z() - tet->getCorner(_1)->z()) +
+	double x = -(tet->getCorner(_2)->y() - tet->getCorner(_1)->y())*(tet->getCorner(_3)->z() - tet->getCorner(_1)->z()) +
 		(tet->getCorner(_3)->y() - tet->getCorner(_1)->y())*(tet->getCorner(_2)->z() - tet->getCorner(_1)->z());
 
-	auto y = -(tet->getCorner(_2)->z() - tet->getCorner(_1)->z())*(tet->getCorner(_3)->x() - tet->getCorner(_1)->x()) +
+	double y = -(tet->getCorner(_2)->z() - tet->getCorner(_1)->z())*(tet->getCorner(_3)->x() - tet->getCorner(_1)->x()) +
 		(tet->getCorner(_3)->z() - tet->getCorner(_1)->z())*(tet->getCorner(_2)->x() - tet->getCorner(_1)->x());
 
-	auto z = -(tet->getCorner(_2)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_3)->y() - tet->getCorner(_1)->y()) +
+	double z = -(tet->getCorner(_2)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_3)->y() - tet->getCorner(_1)->y()) +
 		(tet->getCorner(_3)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_2)->y() - tet->getCorner(_1)->y());
 
 	return Point3(x / tet_volume, y / tet_volume, z / tet_volume);
@@ -55,7 +56,7 @@ void tetsCount(int index)
 	//loop for each tetrahedron
 	for (auto& tet : tets)
 	{
-		double tet_density = 0, tet_velocity_x = 0, tet_velocity_y = 0, tet_velocity_z = 0, tet_volume = 0;
+		double tet_density = 0, tet_temperature = 0, tet_velocity_x = 0, tet_velocity_y = 0, tet_velocity_z = 0, tet_volume = 0;
 
 		for (int corner = 0; corner < 4; corner++)
 		{
@@ -79,12 +80,14 @@ void tetsCount(int index)
 							tet_velocity_x += particles[j]->velocity.x() / 4;
 							tet_velocity_y += particles[j]->velocity.y() / 4;
 							tet_velocity_z += particles[j]->velocity.z() / 4;
+							tet_temperature += particles[j]->temperature / 4;
 						}
 					}
 				}
 				tet_volume = calcTetVolume(tet);
 				particles[index]->tetsVolumes.push_back(tet_volume);
 				particles[index]->tetsVelocities.push_back(Point3(tet_velocity_x, tet_velocity_y, tet_velocity_z));
+				particles[index]->tetsTemperature.push_back(tet_temperature);
 				particles[index]->tetsDensities.push_back(tet_density);
 				particles[index]->vectorsB.push_back(calculateVectorB(tet, corner, tet_volume));
 			}
@@ -101,6 +104,14 @@ void calcVolume(int index)
 		volume += particles[index]->tetsVolumes[i];
 	}
 	particles[index]->volume = volume;
+}
+
+void calcTempreture(int index)
+{
+	auto particle = particles[index];
+	double velocity_squared = pow(particle->velocity.x(), 2) + pow(particle->velocity.y(), 2) + pow(particle->velocity.z(), 2);
+	particle->temperature = particle->density * particle->volume * velocity_squared / bolzmana / 3;
+
 }
 
 void calcNewDensity(int index)
@@ -137,10 +148,10 @@ Point3 calcForce(int index)
 
 	for (int i = 0; i < particle->tetsDensities.size(); i++)
 	{
-		auto pressure = calcPressure(particle->tetsDensities[i]);
-		auto tets_velocity = particle->tetsVelocities[i];
-		auto vector_b = particle->vectorsB[i];
-		auto tets_density = particle->tetsDensities[i];
+		double pressure = calcPressure(particle->tetsDensities[i]);
+		Point3 tets_velocity = particle->tetsVelocities[i];
+		Point3 vector_b = particle->vectorsB[i];
+		double tets_density = particle->tetsDensities[i];
 
 		term1_x += particle->tetsVolumes[i] * (vector_b.x()*(pressure + pow(tets_velocity.x(), 2)*tets_density)
 			+ vector_b.y()*tets_velocity.y()*tets_velocity.x()*tets_density + vector_b.z()*tets_velocity.z()*tets_velocity.x()*tets_density);
@@ -167,29 +178,29 @@ Point3 calcForce(int index)
 					neighbor->tetsVelocities[j].z() == particle->tetsVelocities[k].z() &&
 					neighbor->tetsVolumes[j] == particle->tetsVolumes[k])
 				{
-					auto scalar_product1 = (particle->tetsVelocities[k].x() - neighbor->velocity.x()) * neighbor->vectorsB[j].x() +
+					double scalar_product1 = (particle->tetsVelocities[k].x() - neighbor->velocity.x()) * neighbor->vectorsB[j].x() +
 						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * neighbor->vectorsB[j].y() +
 						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * neighbor->vectorsB[j].z();
 
-					auto scalar_product2 = particle->vectorsB[k].x() * neighbor->vectorsB[j].x() +
+					double scalar_product2 = particle->vectorsB[k].x() * neighbor->vectorsB[j].x() +
 						particle->vectorsB[k].y() * neighbor->vectorsB[j].y() +
 						particle->vectorsB[k].z() * neighbor->vectorsB[j].z();
 
-					auto scalar_product3 = (particle->tetsVelocities[k].x() - neighbor->velocity.x()) * particle->vectorsB[k].x() +
+					double scalar_product3 = (particle->tetsVelocities[k].x() - neighbor->velocity.x()) * particle->vectorsB[k].x() +
 						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * particle->vectorsB[k].y() +
 						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * particle->vectorsB[k].z();
 
-					term2_x += particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].x() +
+					term2_x += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].x() +
 						(particle->tetsVelocities[k].x() - neighbor->velocity.x()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].x() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].x());
+						scalar_product3 * neighbor->vectorsB[j].x() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].x()) / neighbor->temperature;
 
-					term2_y += particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].y() +
+					term2_y += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].y() +
 						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].y() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].y());
+						scalar_product3 * neighbor->vectorsB[j].y() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].y()) / neighbor->temperature;
 
-					term2_z += particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].z() +
+					term2_z += particle->tetsTemperature[k] *  particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].z() +
 						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].z() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].z());
+						scalar_product3 * neighbor->vectorsB[j].z() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].z()) / neighbor->temperature;
 				}
 			}
 		}
