@@ -5,6 +5,8 @@ const int n = 10;
 const double box_size = 1e-9;
 const double h = 1e-13;
 const double bolzmana = 1.38e-23;
+const double shear_viscosity = 1;
+const double bulk_viscosity = 1;
 std::vector<HParticle*> particles(n);
 vector<HParticle*> new_particles(n);
 
@@ -194,17 +196,17 @@ Point3 calcForce(int index)
 						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * particle->vectorsB[k].y() +
 						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * particle->vectorsB[k].z();
 
-					term2_x += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].x() +
-						(particle->tetsVelocities[k].x() - neighbor->velocity.x()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].x() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].x()) / neighbor->temperature;
+					term2_x += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (bulk_viscosity * scalar_product1 * particle->vectorsB[k].x() +
+						(particle->tetsVelocities[k].x() - neighbor->velocity.x()) * scalar_product2 * shear_viscosity +
+						scalar_product3 * neighbor->vectorsB[j].x() * shear_viscosity - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].x() * shear_viscosity) / neighbor->temperature;
 
-					term2_y += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].y() +
-						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].y() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].y()) / neighbor->temperature;
+					term2_y += particle->tetsTemperature[k] * particle->tetsVolumes[k] * (bulk_viscosity * scalar_product1 * particle->vectorsB[k].y() +
+						(particle->tetsVelocities[k].y() - neighbor->velocity.y()) * scalar_product2 * shear_viscosity +
+						scalar_product3 * neighbor->vectorsB[j].y() * shear_viscosity - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].y() * shear_viscosity) / neighbor->temperature;
 
-					term2_z += particle->tetsTemperature[k] *  particle->tetsVolumes[k] * (scalar_product1 * particle->vectorsB[k].z() +
-						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * scalar_product2 +
-						scalar_product3 * neighbor->vectorsB[j].z() - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].z()) / neighbor->temperature;
+					term2_z += particle->tetsTemperature[k] *  particle->tetsVolumes[k] * (bulk_viscosity * scalar_product1 * particle->vectorsB[k].z() +
+						(particle->tetsVelocities[k].z() - neighbor->velocity.z()) * scalar_product2 * shear_viscosity +
+						scalar_product3 * neighbor->vectorsB[j].z() * shear_viscosity - 2.0 / 3.0 * scalar_product1 * particle->vectorsB[k].z() * shear_viscosity) / neighbor->temperature;
 				}
 			}
 		}
