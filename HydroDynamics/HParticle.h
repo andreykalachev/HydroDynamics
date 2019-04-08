@@ -1,16 +1,20 @@
 #pragma once
-#ifndef __HPARTICLE_H__
-#define __HPARTICLE_H__
-
 #include "fade3d/include_fade3d/Fade_3D.h"
+#include "Tetrahedron.h"
 
 using namespace FADE3D;
 using namespace std;
 
-struct HParticle
+class HParticle
 {
 public:
-	HParticle(double x, double y, double z) :  coordinates(x, y, z), density(996.3), temperature(300), velocity(5e1, 5e1, 5e1), mass()
+
+	HParticle()
+	{
+		
+	}
+
+	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3), volume(0), temperature(300)
 	{
 	}
 
@@ -20,25 +24,28 @@ public:
 	double density;
 	double volume;
 	double temperature;
-	vector<double> tetsDensities;
-	vector<double> tetsVolumes;
-	vector<double> tetsTemperature;
-	vector<Point3> tetsVelocities;
-	vector<Point3> vectorsB;
+	vector<Tetrahedron*> tets;
 	vector<HParticle*> neighbours_points;
-
 
 	void clear()
 	{
-		vectorsB.clear();
+		tets.clear();
 		neighbours_points.clear();
-		tetsVelocities.clear();
-		tetsDensities.clear();
-		tetsVolumes.clear();
-		tetsTemperature.clear();
+	}
+
+	//return a copy with new coordinates
+	HParticle copy(double x, double y, double z)
+	{
+		auto new_particle = *this;
+		new_particle.coordinates = Point3 (x,y,z);
+		return new_particle;
+	}
+
+	//return a copy with new coordinates
+	HParticle copy(Point3 new_coordinates)
+	{
+		auto new_particle = *this;
+		new_particle.coordinates.init(new_coordinates);
+		return new_particle;
 	}
 };
-
-
-
-#endif

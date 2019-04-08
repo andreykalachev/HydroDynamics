@@ -96,6 +96,12 @@
     <ClInclude Include="fade3d\include_fade3d\Visualizer3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Tetrahedron.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math_operations.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
