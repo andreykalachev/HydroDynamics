@@ -3,16 +3,17 @@
 #include "Math_operations.h"
 
 //number of particles, new_particles
-const int number_of_particles = 50;
-const double coef = 1e24;
-const double volume = 37.5 * 1e-27 * coef;
+int iteration = 0;
+const int number_of_particles = 10;
+const double coef = 1e12;
+const double volume = 37.5 * 1e-27 * pow(coef,3);
 const double box_size = cbrt(volume);
-const double h = 1e-4;
-const double shear_viscosity = 9.0898e-5;
-const double bulk_viscosity = 3.0272e-5;
+const double h = 1e-14 * coef;
+const double shear_viscosity = 9.0898e-5 / coef;
+const double bulk_viscosity = 3.0272e-5 / coef;
 const double bolzmana = 1.38 * 1e-23 * coef;
 vector<HParticle*> particles(number_of_particles);
-vector<HParticle> particles_image(number_of_particles);
+vector<HParticle> particles_image(0);
 vector<HParticle*> new_particles(number_of_particles);
 
 static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HParticle* particle)
@@ -53,54 +54,66 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	return Point3(x / tet_volume, y / tet_volume, z / tet_volume);
 }
 
-//calculate tetrahedrons' neighbors, volume, density, velocity and vector B
-void tetsCount(int index)
+void copyTets()
 {
-	//loop for each tetrahedron
-	for (auto& tetrahedron : tets)
+	for (int i = 0, n = number_of_particles; i < n; i++)
 	{
-		for (int corner = 0; corner < 4; corner++)
+		for (int p = -1; p <= 1; p++)
 		{
-			//if index particle lie in the nth corner of the tetrahedron
-			if (compare_coords(tetrahedron, corner, particles[index]))
+			for (int j = -1; j <= 1; j++)
 			{
-				auto new_tet = new Tetrahedron();
-				//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
-				for (int j = 0; j < particles_image.size(); j++)
+				for (int k = -1; k <= 1; k++)
 				{
-					auto particle = &particles_image[j];
-					if (tetrahedron->hasVertex(particle->coordinates)) 
-					{
-						particles[index]->neighbours_points.push_back(particle);
-						new_tet->density += particle->density / 4;
-						new_tet->temperature += particle->temperature / 4;
-						new_tet->increase_velocity(particle->velocity.x() / 4, particle->velocity.y() / 4, particle->velocity.z() / 4);
-					}
+					particles_image[k + 1 + 3 * (j + 1) + 9 * (k + 1) + i * 27].tets = particles[i]->tets;
 				}
-				new_tet->volume = calcTetVolume(tetrahedron);
-				new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
-				particles[index]->tets.push_back(new_tet); break;
 			}
 		}
 	}
 }
 
-void calcVolume(int index)
+//calculate tetrahedrons' neighbors, volume, density, velocity and vector B
+void tetsCount()
 {
-	double volume = 0;
-
-	for (int i = 0; i < particles[index]->tets.size(); i++)
+	for (int i = 0; i < number_of_particles; i++)
 	{
-		volume += particles[index]->tets[i]->volume;
+		//loop for each tetrahedron
+		for (auto& tetrahedron : tets)
+		{
+			for (int corner = 0; corner < 4; corner++)
+			{
+				//if index particle lie in the nth corner of the tetrahedron
+				if (compare_coords(tetrahedron, corner, particles[i]))
+				{
+					auto new_tet = new Tetrahedron();
+					//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
+					for (int j = 0; j < particles_image.size(); j++)
+					{
+						auto particle = &particles_image[j];
+						if (tetrahedron->hasVertex(particle->coordinates))
+						{
+							particles[i]->neighbours_points.push_back(particle);
+							new_tet->density += particle->density / 4;
+							new_tet->temperature += particle->temperature / 4;
+							new_tet->increase_velocity(particle->velocity.x() / 4, particle->velocity.y() / 4, particle->velocity.z() / 4);
+						}
+					}
+					new_tet->volume = calcTetVolume(tetrahedron);
+					new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
+					particles[i]->tets.push_back(new_tet); 
+					particles[i]->volume += new_tet->volume;
+					break;
+				}
+			}
+		}
+		particles[i]->mass = particles[i]->volume * particles[i]->density;
+		if (iteration == 0) particles[i]->momentum = Point3(particles[i]->velocity.x() * particles[i]->mass, particles[i]->velocity.y() * particles[i]->mass, particles[i]->velocity.z() * particles[i]->mass);
 	}
-	particles[index]->volume = volume;
+	copyTets();
 }
 
 void calcTempreture(int index)
 {
-	auto particle = particles[index];
-	double velocity_squared = pow(particle->velocity.x(), 2) + pow(particle->velocity.y(), 2) + pow(particle->velocity.z(), 2);
-	new_particles[index]->temperature = particle->density * particle->volume * velocity_squared / (bolzmana * 3);
+	new_particles[index]->temperature = particles[index]->density * particles[index]->volume * pow(particles[index]->velocity_absolute, 2) / (bolzmana * 3);
 }
 
 void calcNewDensity(int index)
@@ -127,11 +140,10 @@ double calcPressure(double density)
 	return f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) + c * pow(density, 2) + d * density + e;
 }
 
-Point3 calcForce(int index)
+Point3 calcMomentum(int index)
 {
 	auto particle = particles[index];
 	double term1_x = 0, term1_y = 0, term1_z = 0, term2_x = 0, term2_y = 0, term2_z = 0;
-	particles[index]->mass = particle->volume * particle->density;
 
 	for (int i = 0; i < particle->tets.size(); i++)
 	{
@@ -187,17 +199,24 @@ Point3 calcForce(int index)
 			}
 		}
 	}
+	double result_x = (term1_x + term2_x);
+	double result_y = (term1_y + term2_y);
+	double result_z = (term1_z + term2_z);
 
-	return Point3(term1_x + term2_x, term1_y + term2_y, term1_z + term2_z);
+	new_particles[index]->momentum =
+		Point3(particles[index]->momentum.x() + result_x, particles[index]->momentum.y() + result_y, particles[index]->momentum.z() + result_z);
+	new_particles[index]->momentum_absolute = calculate_absolute_value(new_particles[index]->momentum);
+	return Point3(result_x, result_y, result_z);
 }
 
 void calcNewVelocity(int index)
 {
-	Point3 force = calcForce(index);
+	auto momentum = calcMomentum(index);
 
-	new_particles[index]->velocity = Point3(particles[index]->velocity.x() + h * force.x() / particles[index]->mass,
-		particles[index]->velocity.y() + h * force.y() / particles[index]->mass,
-		particles[index]->velocity.z() + h * force.z() / particles[index]->mass);
+	new_particles[index]->velocity = Point3(particles[index]->velocity.x() + h * momentum.x() / particles[index]->mass,
+		particles[index]->velocity.y() + h * momentum.y() / particles[index]->mass,
+		particles[index]->velocity.z() + h * momentum.z() / particles[index]->mass);
+	new_particles[index]->velocity_absolute = calculate_absolute_value(new_particles[index]->velocity);
 }
 
 void calcNewPosition(int index)

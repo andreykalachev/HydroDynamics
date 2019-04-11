@@ -14,21 +14,25 @@ public:
 		
 	}
 
-	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3), volume(0), temperature(300)
+	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3e-18), volume(0), temperature(300)
 	{
 	}
 
 	Point3 coordinates;
 	Point3 velocity;
+	Point3 momentum;
 	double mass;
 	double density;
 	double volume;
 	double temperature;
+	double velocity_absolute;
+	double momentum_absolute;
 	vector<Tetrahedron*> tets;
 	vector<HParticle*> neighbours_points;
 
 	void clear()
 	{
+		volume = 0;
 		tets.clear();
 		neighbours_points.clear();
 	}
@@ -47,5 +51,13 @@ public:
 		auto new_particle = *this;
 		new_particle.coordinates.init(new_coordinates);
 		return new_particle;
+	}
+
+	void display()
+	{
+		cout << "coords : ( " << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << " ) \t"
+			<< " vel : " << this->velocity_absolute << "\t" << " mom : " << this->momentum_absolute << "\t"
+			<< " mass :" << this->mass << "\t" << " temp:" << this->temperature << "\t" << "density:" << this->density << endl
+			<< "---------" << endl;
 	}
 };
