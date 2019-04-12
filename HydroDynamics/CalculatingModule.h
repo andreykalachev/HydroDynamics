@@ -5,13 +5,12 @@
 //number of particles, new_particles
 int iteration = 0;
 const int number_of_particles = 10;
-const double coef = 1e12;
-const double volume = 37.5 * 1e-27 * pow(coef,3);
+const double volume = 37.5 * 1e-27 * pow(1e9,3);
 const double box_size = cbrt(volume);
-const double h = 1e-14 * coef;
-const double shear_viscosity = 9.0898e-5 / coef;
-const double bulk_viscosity = 3.0272e-5 / coef;
-const double bolzmana = 1.38 * 1e-23 * coef;
+double h = 1e-14 * 1e12;
+const double shear_viscosity = 9.0898e-5 / 1.66e-3;
+const double bulk_viscosity = 3.0272e-5 / 1.66e-3;
+const double bolzmana = 1.38064852 * 1e-23 / 1.66e-18;
 vector<HParticle*> particles(number_of_particles);
 vector<HParticle> particles_image(0);
 vector<HParticle*> new_particles(number_of_particles);
@@ -58,15 +57,9 @@ void copyTets()
 {
 	for (int i = 0, n = number_of_particles; i < n; i++)
 	{
-		for (int p = -1; p <= 1; p++)
+		for (int j = 0; j < 27; j++)
 		{
-			for (int j = -1; j <= 1; j++)
-			{
-				for (int k = -1; k <= 1; k++)
-				{
-					particles_image[k + 1 + 3 * (j + 1) + 9 * (k + 1) + i * 27].tets = particles[i]->tets;
-				}
-			}
+			particles_image[j + i * 27].tets = particles[i]->tets;
 		}
 	}
 }
@@ -130,14 +123,14 @@ void calcNewDensity(int index)
 double calcPressure(double density)
 {
 	static double a, b, c, d, e, f;
-	a = -1.86789e-004;
-	b = 1.9878e-001;
-	c = -9.6160e001;
-	d = 8.2666e004;
-	e = -1.5356e006;
-	f = 1.1584e-007;
+	a = -1.86789e-4;
+	b = 1.9878e-1;
+	c = -9.6160e1;
+	d = 8.2666e4;
+	e = -1.5356e6;
+	f = 1.1584e-7;
 
-	return f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) + c * pow(density, 2) + d * density + e;
+	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) + c * pow(density, 2) + d * density + e) / 1.66e9;
 }
 
 Point3 calcMomentum(int index)

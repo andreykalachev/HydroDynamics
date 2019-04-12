@@ -14,7 +14,7 @@ public:
 		
 	}
 
-	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3e-18), volume(0), temperature(300)
+	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3 / 1.66e3), volume(0), temperature(300)
 	{
 	}
 
@@ -55,9 +55,9 @@ public:
 
 	void display()
 	{
-		cout << "coords : ( " << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << " ) \t"
-			<< " vel : " << this->velocity_absolute << "\t" << " mom : " << this->momentum_absolute << "\t"
-			<< " mass :" << this->mass << "\t" << " temp:" << this->temperature << "\t" << "density:" << this->density << endl
+		cout << "coords : ( " << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << " )   \t"
+			<< " vel : " << this->velocity_absolute << " \t" << " mom : " << this->momentum_absolute << "   \t"
+			<< " mass :" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << endl
 			<< "---------" << endl;
 	}
 };
