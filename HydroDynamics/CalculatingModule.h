@@ -2,24 +2,22 @@
 #include <math.h>
 #include "Math_operations.h"
 
-//number of particles, new_particles
+//current iteration
 int iteration = 0;
 const int number_of_particles = 10;
 const double volume = 37.5 * 1e-27 * pow(1e9,3);
 const double box_size = cbrt(volume);
-double h = 1e-14 * 1e12;
+double time_step = 1e-14 * 1e12;
 const double shear_viscosity = 9.0898e-5 / 1.66e-3;
 const double bulk_viscosity = 3.0272e-5 / 1.66e-3;
 const double bolzmana = 1.38064852 * 1e-23 / 1.66e-18;
+//total system velocity
+Point3 system_velocity = Point3(0, 0, 0);
 vector<HParticle*> particles(number_of_particles);
+//images of particles to clrate periodic conditions
 vector<HParticle> particles_image(0);
+//values for next iteration are stored in this vector
 vector<HParticle*> new_particles(number_of_particles);
-
-static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HParticle* particle)
-{
-	return tet->getCorner(tet_corner)->x() == particle->coordinates.x() && tet->getCorner(tet_corner)->y() == particle->coordinates.y() &&
-		tet->getCorner(tet_corner)->z() == particle->coordinates.z();
-}
 
 double calcTetVolume(vector<Tet3*>::value_type& tet)
 {
@@ -53,6 +51,7 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	return Point3(x / tet_volume, y / tet_volume, z / tet_volume);
 }
 
+//copy all tetrahedrons from particles to all their images
 void copyTets()
 {
 	for (int i = 0, n = number_of_particles; i < n; i++)
@@ -64,7 +63,7 @@ void copyTets()
 	}
 }
 
-//calculate tetrahedrons' neighbors, volume, density, velocity and vector B
+//calculate particles' tetrahedrons, neighbors, volume, mass 
 void tetsCount()
 {
 	for (int i = 0; i < number_of_particles; i++)
@@ -84,7 +83,7 @@ void tetsCount()
 						auto particle = &particles_image[j];
 						if (tetrahedron->hasVertex(particle->coordinates))
 						{
-							particles[i]->neighbours_points.push_back(particle);
+							if (!(particle->coordinates == particles[i]->coordinates)) particles[i]->neighbours_points.push_back(particle);
 							new_tet->density += particle->density / 4;
 							new_tet->temperature += particle->temperature / 4;
 							new_tet->increase_velocity(particle->velocity.x() / 4, particle->velocity.y() / 4, particle->velocity.z() / 4);
@@ -117,7 +116,7 @@ void calcNewDensity(int index)
 		auto tet = particles[index]->tets[i];
 		sum += tet->volume * tet->density * (tet->vectorB.x() * tet->velocity.x() + tet->vectorB.y() * tet->velocity.y() + tet->vectorB.z() * tet->velocity.z());
 	}
-	new_particles[index]->density = particles[index]->density + h * sum / particles[index]->volume;
+	new_particles[index]->density = particles[index]->density + time_step * sum / particles[index]->volume;
 }
 
 double calcPressure(double density)
@@ -206,15 +205,16 @@ void calcNewVelocity(int index)
 {
 	auto momentum = calcMomentum(index);
 
-	new_particles[index]->velocity = Point3(particles[index]->velocity.x() + h * momentum.x() / particles[index]->mass,
-		particles[index]->velocity.y() + h * momentum.y() / particles[index]->mass,
-		particles[index]->velocity.z() + h * momentum.z() / particles[index]->mass);
+	new_particles[index]->velocity = Point3(particles[index]->velocity.x() + time_step * momentum.x() / particles[index]->mass,
+		particles[index]->velocity.y() + time_step * momentum.y() / particles[index]->mass,
+		particles[index]->velocity.z() + time_step * momentum.z() / particles[index]->mass);
 	new_particles[index]->velocity_absolute = calculate_absolute_value(new_particles[index]->velocity);
+	system_velocity = calculate_sum(system_velocity, new_particles[index]->velocity);
 }
 
 void calcNewPosition(int index)
 {
-	new_particles[index]->coordinates = Point3(particles[index]->coordinates.x() + h * particles[index]->velocity.x(),
-		particles[index]->coordinates.y() + h * particles[index]->velocity.y(),
-		particles[index]->coordinates.z() + h * particles[index]->velocity.z());
+	new_particles[index]->coordinates = Point3(particles[index]->coordinates.x() + time_step * particles[index]->velocity.x(),
+		particles[index]->coordinates.y() + time_step * particles[index]->velocity.y(),
+		particles[index]->coordinates.z() + time_step * particles[index]->velocity.z());
 }

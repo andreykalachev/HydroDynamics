@@ -53,11 +53,23 @@ public:
 		return new_particle;
 	}
 
-	void display()
+	void display(ofstream &file)
 	{
-		cout << "coords : ( " << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << " )   \t"
-			<< " vel : " << this->velocity_absolute << " \t" << " mom : " << this->momentum_absolute << "   \t"
-			<< " mass :" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << endl
-			<< "---------" << endl;
+		file << fixed;
+		file << "coords: (" << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << ")  \t";
+		file << scientific;
+		file << "vel: " << this->velocity_absolute << " \t" << " mom: " << this->momentum_absolute << " \t"
+			<< " mass:" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << " \t"
+			<< "vel: (" << this->velocity.x() << ", " << this->velocity.y() << ", " << this->velocity.z() << ")"
+			<< endl << "---------" << endl;
+	}
+
+	void display_for_plot(ofstream &file)
+	{
+		/*file << fixed << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t"
+			<< scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t"
+			<< this->velocity_absolute << " \t" << this->momentum_absolute << " \t" << this->mass << " \t" << this->temperature << " \t" << this->density << " \t";*/
+		file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t";
+
 	}
 };
