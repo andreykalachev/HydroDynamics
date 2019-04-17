@@ -82,9 +82,6 @@ void tetsCount()
 					{
 						auto particle = &particles_image[j];
 
-						if (particle->coordinates == particles[i]->coordinates)
-							continue;
-
 						if (tetrahedron->hasVertex(particle->coordinates))
 						{
 							if (!(particle->coordinates == particles[i]->coordinates)) particles[i]->neighbours_points.push_back(particle);
