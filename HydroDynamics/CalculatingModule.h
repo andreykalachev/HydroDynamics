@@ -7,7 +7,7 @@ int iteration = 0;
 const int number_of_particles = 10;
 const double volume = 37.5 * 1e-27 * pow(1e9,3);
 const double box_size = cbrt(volume);
-double time_step = 1e-14 * 1e12;
+double time_step = 1e-12 * 1e12;
 const double shear_viscosity = 9.0898e-5 / 1.66e-3;
 const double bulk_viscosity = 3.0272e-5 / 1.66e-3;
 const double bolzmana = 1.38064852 * 1e-23 / 1.66e-18;
@@ -81,13 +81,19 @@ void tetsCount()
 					for (int j = 0; j < particles_image.size(); j++)
 					{
 						auto particle = &particles_image[j];
-
+						//number of vertexes that we have taken into account (we need only 4 for each tetrahedron)
+						auto vertex_count = 0;
 						if (tetrahedron->hasVertex(particle->coordinates))
 						{
-							if (!(particle->coordinates == particles[i]->coordinates)) particles[i]->neighbours_points.push_back(particle);
+							vertex_count++;
+							//check that we don't add the particle itself to its neighbours and that we don't add one neighbours more than one time
+							if (!(particle->coordinates == particles[i]->coordinates) ) 
+									particles[i]->neighbours_points.push_back(particle);
 							new_tet->density += particle->density / 4;
 							new_tet->temperature += particle->temperature / 4;
 							new_tet->increase_velocity(particle->velocity.x() / 4, particle->velocity.y() / 4, particle->velocity.z() / 4);
+							//we exit the loop when we have 4 vertexes
+							if (vertex_count == 4) break;
 						}
 					}
 					new_tet->volume = calcTetVolume(tetrahedron);

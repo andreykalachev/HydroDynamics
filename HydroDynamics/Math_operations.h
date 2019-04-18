@@ -50,6 +50,5 @@ static Point3 divide(Point3 point1, double divider)
 
 static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HParticle* particle)
 {
-	return tet->getCorner(tet_corner)->x() == particle->coordinates.x() && tet->getCorner(tet_corner)->y() == particle->coordinates.y() &&
-		tet->getCorner(tet_corner)->z() == particle->coordinates.z();
+	return  *tet->getCorner(tet_corner) == particle->coordinates;
 }
