@@ -26,15 +26,9 @@ public:
 	Point3 velocity;
 	Point3 vectorB;
 
-	void increase_velocity(double x, double y, double z)
-	{
-		velocity = Point3(velocity.x() + x, velocity.y() + y, velocity.z() + z);
-	}
-
 	bool is_equal(Tetrahedron tet)
 	{
-		return tet.density == density && tet.velocity.x() == velocity.x() && tet.velocity.y() == velocity.y() &&
-			tet.velocity.z() == velocity.z() && tet.volume == volume;
+		return tet.density == density && tet.velocity == velocity &&  tet.volume == volume;
 	}
 
 };

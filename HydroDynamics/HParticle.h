@@ -38,7 +38,7 @@ public:
 	}
 
 	//return a copy with new coordinates
-	HParticle copy(double x, double y, double z)
+	HParticle get_copy(double x, double y, double z)
 	{
 		auto new_particle = *this;
 		new_particle.coordinates = Point3 (x,y,z);
@@ -46,11 +46,22 @@ public:
 	}
 
 	//return a copy with new coordinates
-	HParticle copy(Point3 new_coordinates)
+	HParticle get_copy(Point3 new_coordinates)
 	{
 		auto new_particle = *this;
 		new_particle.coordinates.init(new_coordinates);
 		return new_particle;
+	}
+
+	void copy(HParticle *particle)
+	{
+		this->density = particle->density;
+		this->velocity = particle->velocity;
+		this->momentum = particle->momentum;
+		this->velocity_absolute = particle->velocity_absolute;
+		this->momentum_absolute = particle->momentum_absolute;
+		this->temperature = particle->temperature;
+		this->coordinates = particle->coordinates;
 	}
 
 	void display(ofstream &file)
@@ -73,3 +84,13 @@ public:
 
 	}
 };
+
+
+static bool isInside(vector<HParticle*> particles, HParticle *p)
+{
+	for (auto* particle : particles)
+	{
+		if (particle == p) return true;
+	}
+	return false;
+}

@@ -97,9 +97,10 @@ public:
 */
 	bool operator==(const Point3& p) const;
 
+/*
 	Vector3 operator-(const Point3& other) const;
 	Point3 operator+(const Vector3& vec) const;
-
+*/
 	friend std::ostream &operator<<(std::ostream &stream, const Point3& pnt);
 	friend std::istream &operator>>(std::istream &stream, Point3& pnt);
 //#ifdef GEOM_DEV_DEBUG

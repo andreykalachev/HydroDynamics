@@ -24,9 +24,6 @@
     <ClInclude Include="HParticle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DrawModule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CalculatingModule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -110,9 +107,6 @@
     <ClCompile Include="HydroDynamics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="fade3d\Win32\fade3D_Win32_v141_Release.lib" />
