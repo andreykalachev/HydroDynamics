@@ -51,18 +51,6 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	return Point3(x / tet_volume, y / tet_volume, z / tet_volume);
 }
 
-//copy all tetrahedrons from particles to all their images
-void copyTets()
-{
-	for (int i = 0, n = number_of_particles; i < n; i++)
-	{
-		for (int j = 0; j < 27; j++)
-		{
-			particles_image[j + i * 27].tets = particles[i]->tets;
-		}
-	}
-}
-
 //calculate particles' tetrahedrons, neighbors, volume, mass 
 void tetsCount()
 {
@@ -87,8 +75,9 @@ void tetsCount()
 						{
 							vertex_count++;
 							//check that we don't add the particle itself to its neighbours and that we don't add one neighbours more than one time
-							if (!(particle->coordinates == particles[i]->coordinates) ) 
-									particles[i]->neighbours_points.push_back(particle);
+							if (!(particle->coordinates == particles[i]->coordinates) &&
+								find(particles[i]->neighbours_points.begin(), particles[i]->neighbours_points.end(), particle) == particles[i]->neighbours_points.end())
+								particles[i]->neighbours_points.push_back(particle);
 							new_tet->density += particle->density / 4;
 							new_tet->temperature += particle->temperature / 4;
 							new_tet->increase_velocity(particle->velocity.x() / 4, particle->velocity.y() / 4, particle->velocity.z() / 4);
@@ -106,8 +95,9 @@ void tetsCount()
 		}
 		particles[i]->mass = particles[i]->volume * particles[i]->density;
 		if (iteration == 0) particles[i]->momentum = Point3(particles[i]->velocity.x() * particles[i]->mass, particles[i]->velocity.y() * particles[i]->mass, particles[i]->velocity.z() * particles[i]->mass);
+		//copy all tetrahedrons from particle to all its image
+		for (int j = 0; j < 27; j++) particles_image[j + i * 27].tets = particles[i]->tets;
 	}
-	copyTets();
 }
 
 void calcTempreture(int index)
