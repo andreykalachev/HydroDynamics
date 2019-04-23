@@ -1,8 +1,6 @@
 #pragma once
 #include <cmath>
 
-class HParticle;
-
 static int positive_mod(int x, int y) {
 	return (x % y + y) % y;
 }

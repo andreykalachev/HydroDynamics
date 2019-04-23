@@ -27,12 +27,11 @@ public:
 	double temperature;
 	double velocity_absolute;
 	double momentum_absolute;
-	vector<Tetrahedron*> tets;
+	vector<Tetrahedron> tets;
 	vector<HParticle*> neighbours_points;
 
 	void clear()
 	{
-		volume = 0;
 		tets.clear();
 		neighbours_points.clear();
 	}

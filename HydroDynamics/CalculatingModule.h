@@ -8,7 +8,7 @@ vector<Tet3*> tets;
 const int number_of_particles = 10;
 const double volume = 37.5;
 const double box_size = cbrt(volume);
-double time_step = 1;
+double time_step = 0.1;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double bolzmana = 1.38064852 / 1.66e5;
@@ -57,6 +57,7 @@ void analyzeTets()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
+		double particle_volume = 0;
 		//loop for each tetrahedron
 		for (auto& tetrahedron : tets)
 		{
@@ -85,18 +86,28 @@ void analyzeTets()
 							if (vertex_count == 4) break;
 						}
 					}
+					new_tet->circumcenter = tetrahedron->getCircumcenter();
 					new_tet->volume = calcTetVolume(tetrahedron);
 					new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
-					particles[i]->tets.push_back(new_tet); 
-					particles[i]->volume += new_tet->volume;
+					particles[i]->tets.push_back(*new_tet); 
+					particle_volume += new_tet->volume;
 					break;
 				}
 			}
 		}
+		particles[i]->volume = particle_volume;
 		particles[i]->mass = particles[i]->volume * particles[i]->density;
 		if (iteration == 0) particles[i]->momentum = particles[i]->velocity * particles[i]->mass;
-		//copy all tetrahedrons from particle to all its image
-		for (int j = 0; j < 27; j++) particles_image[j + i * 27].tets = particles[i]->tets;
+		//copy missing data from particle to all it's images
+		for (int j = 0; j < 27; j++) {
+			particles_image[j + i * 27].mass = particles[i]->mass;
+			particles_image[j + i * 27].volume = particles[i]->volume;
+			auto shift = particles_image[j + i * 27].coordinates - particles[i]->coordinates;
+			for (auto tet : particles[i]->tets)
+			{
+				particles_image[j + i * 27].tets.push_back(tet.get_copy(shift));
+			}
+		}
 	}
 }
 
@@ -110,7 +121,7 @@ void calcNewDensity(int index)
 	double sum = 0;
 	for (auto tet : particles[index]->tets)
 	{
-		sum += tet->volume * (tet->vectorB * tet->velocity) * tet->density;
+		sum += tet.volume * (tet.vectorB * tet.velocity) * tet.density;
 	}
 	new_particles[index]->density = particles[index]->density + time_step * sum / particles[index]->volume;
 }
@@ -135,22 +146,23 @@ Point3 calcMomentum(int index)
 
 	for (auto tet : particle->tets)
 	{
-		term1 += tet->volume * (calcPressure(tet->density) * tet->vectorB + tet->density * (tet->vectorB * tet->velocity) * tet->velocity);
+		term1 += tet.volume * (calcPressure(tet.density) * tet.vectorB + tet.density * (tet.vectorB * tet.velocity) * tet.velocity);
 
 		for (auto neighbor : particle->neighbours_points)
 		{
 			for (auto n_tet : neighbor->tets)
 			{
-				if (tet->is_equal(*n_tet))
+				if (tet.is_equal(n_tet))
 				{
-					const auto scalar_product1 = (tet->velocity - neighbor->velocity) * n_tet->vectorB;
-					const auto scalar_product2 = tet->vectorB * n_tet->vectorB;
-					const auto scalar_product3 = (tet->velocity - neighbor->velocity) * tet->vectorB;
+					const auto scalar_product1 = (tet.velocity - neighbor->velocity) * n_tet.vectorB;
+					const auto scalar_product2 = tet.vectorB * n_tet.vectorB;
+					const auto scalar_product3 = (tet.velocity - neighbor->velocity) * tet.vectorB;
 
-					term2 += tet->temperature * tet->volume / neighbor->temperature *
-						(bulk_viscosity * scalar_product1 * tet->vectorB +
-							shear_viscosity * ((tet->velocity - neighbor->velocity) * scalar_product2 +
-								scalar_product3 * n_tet->vectorB - 2 / 3 * scalar_product1 * tet->vectorB));
+					term2 += tet.temperature * tet.volume / neighbor->temperature *
+						(bulk_viscosity * scalar_product1 * tet.vectorB +
+							shear_viscosity * ((tet.velocity - neighbor->velocity) * scalar_product2 +
+								scalar_product3 * n_tet.vectorB - 2 / 3 * scalar_product1 * tet.vectorB));
+					break;
 				}
 			}
 		}
