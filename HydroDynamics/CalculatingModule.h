@@ -8,7 +8,7 @@ vector<Tet3*> tets;
 const int number_of_particles = 10;
 const double volume = 37.5;
 const double box_size = cbrt(volume);
-double time_step = 0.1;
+double time_step = 1;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double bolzmana = 1.38064852 / 1.66e5;
@@ -29,7 +29,7 @@ double calcTetVolume(vector<Tet3*>::value_type& tet)
 		(tet->getCorner(2)->z() - tet->getCorner(1)->z()) * (tet->getCorner(3)->y() - tet->getCorner(1)->y()) * (tet->getCorner(0)->x() - tet->getCorner(1)->x()) -
 		(tet->getCorner(2)->x() - tet->getCorner(1)->x()) * (tet->getCorner(0)->y() - tet->getCorner(1)->y()) * (tet->getCorner(3)->z() - tet->getCorner(1)->z());
 
-	return fabs(tet_volume);
+	return fabs(tet_volume / 6);
 }
 
 Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_volume)
@@ -49,7 +49,7 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	double z = -(tet->getCorner(_2)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_3)->y() - tet->getCorner(_1)->y()) +
 		(tet->getCorner(_3)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_2)->y() - tet->getCorner(_1)->y());
 
-	return Point3(x / tet_volume, y / tet_volume, z / tet_volume);
+	return Point3(x / (tet_volume * 6), y / (tet_volume * 6), z / (tet_volume * 6));
 }
 
 //calculate particles' tetrahedrons, neighbors, volume, mass 
@@ -170,7 +170,7 @@ Point3 calcMomentum(int index)
 
 	auto result = term1 + term2;
 
-	new_particles[index]->momentum = particle->momentum + result;
+	new_particles[index]->momentum = particle->momentum + result * time_step;
 	new_particles[index]->momentum_absolute = calculate_absolute_value(new_particles[index]->momentum);
 	return result;
 }
