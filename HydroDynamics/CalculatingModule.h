@@ -113,7 +113,7 @@ void analyzeTets()
 
 void calcTempreture(int index)
 {
-	new_particles[index]->temperature = particles[index]->density * particles[index]->volume * pow(particles[index]->velocity_absolute, 2) / (bolzmana * 3);
+	new_particles[index]->temperature = new_particles[index]->density * particles[index]->volume * pow(new_particles[index]->velocity_absolute, 2) / (bolzmana * 3);
 }
 
 void calcNewDensity(int index)
@@ -184,5 +184,5 @@ void calcNewVelocity(int index)
 
 void calcNewPosition(int index)
 {
-	new_particles[index]->coordinates = particles[index]->coordinates + particles[index]->velocity * time_step;
+	new_particles[index]->coordinates = particles[index]->coordinates + (particles[index]->velocity + new_particles[index]->velocity) * time_step / 2;
 }
