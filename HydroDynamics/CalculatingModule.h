@@ -8,7 +8,7 @@ vector<Tet3*> tets;
 const int number_of_particles = 10;
 const double volume = 37.5;
 const double box_size = cbrt(volume);
-double time_step = 1;
+double time_step = 0.02;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double bolzmana = 1.38064852 / 1.66e5;
@@ -69,12 +69,17 @@ void analyzeTets()
 					//number of vertexes that we have taken into account (we need only 4 for each tetrahedron)
 					auto vertex_count = 0;
 					auto new_tet = new Tetrahedron();
+					new_tet->volume = calcTetVolume(tetrahedron);
+					new_tet->circumcenter = tetrahedron->getCircumcenter();
+					new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
 					//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
 					for (int j = 0; j < particles_image.size(); j++)
 					{
 						auto particle = &particles_image[j];
-						if (tetrahedron->hasVertex(particle->coordinates))
+						auto image_corner = 0;
+						if (has_corner(tetrahedron, particle, &image_corner))
 						{
+							if (vertex_count == 4) break;
 							vertex_count++;
 							//check that we don't add the particle itself to its neighbours and that we don't add one neighbours more than one time
 							if (particle->coordinates != particles[i]->coordinates && !isInside(particles[i]->neighbours_points, particle))
@@ -83,12 +88,15 @@ void analyzeTets()
 							new_tet->temperature += particle->temperature / 4;
 							new_tet->velocity += particle->velocity / 4;
 							//we exit the loop when we have 4 vertexes
-							if (vertex_count == 4) break;
+
+							if (image_corner == corner) continue;
+							auto tet = Tetrahedron();
+							tet.volume = new_tet->volume;
+							tet.circumcenter = new_tet->circumcenter;
+							tet.vectorB = calculateVectorB(tetrahedron, image_corner, new_tet->volume);
+							particle->tets.push_back(tet);
 						}
 					}
-					new_tet->circumcenter = tetrahedron->getCircumcenter();
-					new_tet->volume = calcTetVolume(tetrahedron);
-					new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
 					particles[i]->tets.push_back(*new_tet); 
 					particle_volume += new_tet->volume;
 					break;
@@ -102,11 +110,6 @@ void analyzeTets()
 		for (int j = 0; j < 27; j++) {
 			particles_image[j + i * 27].mass = particles[i]->mass;
 			particles_image[j + i * 27].volume = particles[i]->volume;
-			auto shift = particles_image[j + i * 27].coordinates - particles[i]->coordinates;
-			for (auto tet : particles[i]->tets)
-			{
-				particles_image[j + i * 27].tets.push_back(tet.get_copy(shift));
-			}
 		}
 	}
 }
@@ -139,7 +142,7 @@ double calcPressure(double density)
 	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) + c * pow(density, 2) + d * density + e) / 1.66e9;
 }
 
-Point3 calcMomentum(int index)
+Point3 calcForce(int index)
 {
 	auto particle = particles[index];
 	auto term1 = Point3(0,0,0), term2 = Point3(0, 0, 0);
@@ -148,6 +151,7 @@ Point3 calcMomentum(int index)
 	{
 		term1 += tet.volume * (calcPressure(tet.density) * tet.vectorB + tet.density * (tet.vectorB * tet.velocity) * tet.velocity);
 
+		auto count = 0;
 		for (auto neighbor : particle->neighbours_points)
 		{
 			for (auto n_tet : neighbor->tets)
@@ -161,11 +165,13 @@ Point3 calcMomentum(int index)
 					term2 += tet.temperature * tet.volume / neighbor->temperature *
 						(bulk_viscosity * scalar_product1 * tet.vectorB +
 							shear_viscosity * ((tet.velocity - neighbor->velocity) * scalar_product2 +
-								scalar_product3 * n_tet.vectorB - 2 / 3 * scalar_product1 * tet.vectorB));
+								scalar_product3 * n_tet.vectorB - 2.0 / 3.0 * scalar_product1 * tet.vectorB));
+					count++;
 					break;
 				}
 			}
 		}
+		count = 0;
 	}
 
 	auto result = term1 + term2;
@@ -177,7 +183,7 @@ Point3 calcMomentum(int index)
 
 void calcNewVelocity(int index)
 {
-	new_particles[index]->velocity = particles[index]->velocity + calcMomentum(index) * time_step / particles[index]->mass;
+	new_particles[index]->velocity = particles[index]->velocity + calcForce(index) * time_step / particles[index]->mass;
 	new_particles[index]->velocity_absolute = calculate_absolute_value(new_particles[index]->velocity);
 	system_velocity += new_particles[index]->velocity;
 }

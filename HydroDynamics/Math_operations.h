@@ -25,6 +25,18 @@ static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HPart
 	return  *tet->getCorner(tet_corner) == particle->coordinates;
 }
 
+
+static bool has_corner(vector<Tet3*>::value_type& tet, HParticle* particle, int* out_param_corner)
+{
+	for (int corner = 0; corner < 4; ++corner)
+	{
+		if (compare_coords(tet, corner, particle)) {
+			*out_param_corner = corner;
+			return true;
+		}
+	}
+	return false;
+}
 /*Operations with Point3*/
 static Point3 operator-(Point3 point1, Point3 point2)
 {

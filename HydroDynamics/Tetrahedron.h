@@ -28,7 +28,7 @@ public:
 
 	bool is_equal(Tetrahedron tet)
 	{
-		return tet.density == this->density && tet.velocity == this->velocity &&  tet.volume == this->volume && tet.circumcenter == this->circumcenter;
+		return tet.circumcenter == this->circumcenter;
 	}
 
 	Tetrahedron get_copy(Point3 shift)
