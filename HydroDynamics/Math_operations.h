@@ -103,6 +103,10 @@ static bool operator!=(Point3 point1, Point3 point2)
 	return point1.x() != point2.x() || point1.y() != point2.y() || point1.z() != point2.z();
 }
 
+static double distance(const Point3& p0, const Point3& p1)
+{
+	return sqrt(pow(p1.x() - p0.x(), 2) + pow(p1.y() - p0.y(), 2) + pow(p1.z() - p0.z(), 2));
+}
 
 
 //additional operations

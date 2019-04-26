@@ -36,20 +36,16 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 {
 	int sign = corner % 2 == 0 ? 1 : -1;
 
-	int _1 = positive_mod((corner + sign * 1), 4);
-	int _2 = positive_mod((corner + sign * 2), 4);
-	int _3 = positive_mod((corner + sign * 3), 4);
+	auto _1 = tet->getCorner(positive_mod((corner + sign * 1), 4));
+	auto _2 = tet->getCorner(positive_mod((corner + sign * 2), 4));
+	auto _3 = tet->getCorner(positive_mod((corner + sign * 3), 4));
 
-	double x = -(tet->getCorner(_2)->y() - tet->getCorner(_1)->y())*(tet->getCorner(_3)->z() - tet->getCorner(_1)->z()) +
-		(tet->getCorner(_3)->y() - tet->getCorner(_1)->y())*(tet->getCorner(_2)->z() - tet->getCorner(_1)->z());
+	auto x = -(_2->y() - _1->y())*(_3->z() - _1->z()) + (_3->y() - _1->y())*(_2->z() - _1->z());
+	auto y = -(_2->z() - _1->z())*(_3->x() - _1->x()) + (_3->z() - _1->z())*(_2->x() - _1->x());
+	auto z = -(_2->x() - _1->x())*(_3->y() - _1->y()) + (_3->x() - _1->x())*(_2->y() - _1->y());
 
-	double y = -(tet->getCorner(_2)->z() - tet->getCorner(_1)->z())*(tet->getCorner(_3)->x() - tet->getCorner(_1)->x()) +
-		(tet->getCorner(_3)->z() - tet->getCorner(_1)->z())*(tet->getCorner(_2)->x() - tet->getCorner(_1)->x());
-
-	double z = -(tet->getCorner(_2)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_3)->y() - tet->getCorner(_1)->y()) +
-		(tet->getCorner(_3)->x() - tet->getCorner(_1)->x())*(tet->getCorner(_2)->y() - tet->getCorner(_1)->y());
-
-	return Point3(x / (tet_volume * 6), y / (tet_volume * 6), z / (tet_volume * 6));
+	auto vector_b = Point3(x, y, z) / (6 * tet_volume);
+	return vector_b / calculate_absolute_value(vector_b) * distance(*_1, (*_2 + *_3) / 2) * distance(*_2, *_3) / 2;
 }
 
 //calculate particles' tetrahedrons, neighbors, volume, mass 
@@ -151,7 +147,6 @@ Point3 calcForce(int index)
 	{
 		term1 += tet.volume * (calcPressure(tet.density) * tet.vectorB + tet.density * (tet.vectorB * tet.velocity) * tet.velocity);
 
-		auto count = 0;
 		for (auto neighbor : particle->neighbours_points)
 		{
 			for (auto n_tet : neighbor->tets)
@@ -166,12 +161,10 @@ Point3 calcForce(int index)
 						(bulk_viscosity * scalar_product1 * tet.vectorB +
 							shear_viscosity * ((tet.velocity - neighbor->velocity) * scalar_product2 +
 								scalar_product3 * n_tet.vectorB - 2.0 / 3.0 * scalar_product1 * tet.vectorB));
-					count++;
 					break;
 				}
 			}
 		}
-		count = 0;
 	}
 
 	auto result = term1 + term2;
