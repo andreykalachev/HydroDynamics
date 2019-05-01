@@ -8,7 +8,7 @@ vector<Tet3*> tets;
 const int number_of_particles = 10;
 const double volume = 37.5;
 const double box_size = cbrt(volume);
-double time_step = 0.02;
+double time_step = 0.01;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double bolzmana = 1.38064852 / 1.66e5;
@@ -75,8 +75,6 @@ void analyzeTets()
 						auto image_corner = 0;
 						if (has_corner(tetrahedron, particle, &image_corner))
 						{
-							if (vertex_count == 4) break;
-							vertex_count++;
 							//check that we don't add the particle itself to its neighbours and that we don't add one neighbours more than one time
 							if (particle->coordinates != particles[i]->coordinates && !isInside(particles[i]->neighbours_points, particle))
 								particles[i]->neighbours_points.push_back(particle);
@@ -91,6 +89,7 @@ void analyzeTets()
 							tet.circumcenter = new_tet->circumcenter;
 							tet.vectorB = calculateVectorB(tetrahedron, image_corner, new_tet->volume);
 							particle->tets.push_back(tet);
+							if (++vertex_count == 4) break;
 						}
 					}
 					particles[i]->tets.push_back(*new_tet); 
