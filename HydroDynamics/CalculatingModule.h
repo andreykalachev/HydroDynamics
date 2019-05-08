@@ -94,6 +94,20 @@ void analyzeTets()
 }
 
 
+//double calcPressure(double density)
+//{
+//	static double a, b, c, d, e, f;
+//	f = 1.1584 / 16.6;
+//	a = -1.86789 / 16.6;
+//	b = 1.9878 / 16.6;
+//	c = -9.6160 / 166;
+//	d = 8.2666 / 166;
+//	e = -1.5356 / 1660;
+//
+//	return (f * pow(density * 1.66, 5) + a * pow(density * 1.66, 4) + b * pow(density * 1.66, 3) 
+//		+ c * pow(density * 1.66, 2) + d * density * 1,66 + e);
+//}
+
 double calcPressure(double density)
 {
 	static double a, b, c, d, e, f;
@@ -107,7 +121,6 @@ double calcPressure(double density)
 	return (f * pow(density * 1.66e3, 5) + a * pow(density * 1.66e3, 4) + b * pow(density * 1.66e3, 3) +
 		c * pow(density * 1.66e3, 2) + d * density * 1.66e3 + e) / 1.66e9;
 }
-
 
 void calcTempreture()
 {
