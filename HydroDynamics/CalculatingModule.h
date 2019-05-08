@@ -8,7 +8,8 @@ vector<Tet3*> tets;
 const int number_of_particles = 10;
 const double volume = 37.5;
 const double box_size = cbrt(volume);
-double time_step = 0.01;
+double time_step = 1;
+double elapsed_time = 0;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double bolzmana = 1.38064852 / 1.66e5;
@@ -44,8 +45,7 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	auto y = -(_2->z() - _1->z())*(_3->x() - _1->x()) + (_3->z() - _1->z())*(_2->x() - _1->x());
 	auto z = -(_2->x() - _1->x())*(_3->y() - _1->y()) + (_3->x() - _1->x())*(_2->y() - _1->y());
 
-	auto vector_b = Point3(x, y, z) / (6 * tet_volume);
-	return vector_b / calculate_absolute_value(vector_b) * distance(*_1, (*_2 + *_3) / 2) * distance(*_2, *_3) / 2;
+	return Point3(x, y, z) / (6 * tet_volume);
 }
 
 //calculate particles' tetrahedrons, neighbors, volume, mass 
@@ -53,7 +53,6 @@ void analyzeTets()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		double particle_volume = 0;
 		//loop for each tetrahedron
 		for (auto& tetrahedron : tets)
 		{
@@ -64,10 +63,8 @@ void analyzeTets()
 				{
 					//number of vertexes that we have taken into account (we need only 4 for each tetrahedron)
 					auto vertex_count = 0;
-					auto new_tet = new Tetrahedron();
-					new_tet->volume = calcTetVolume(tetrahedron);
-					new_tet->circumcenter = tetrahedron->getCircumcenter();
-					new_tet->vectorB = calculateVectorB(tetrahedron, corner, new_tet->volume);
+					auto new_tet = Tetrahedron(calcTetVolume(tetrahedron), tetrahedron->getCircumcenter());
+					new_tet.vectorB = calculateVectorB(tetrahedron, corner, new_tet.volume);
 					//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
 					for (int j = 0; j < particles_image.size(); j++)
 					{
@@ -77,52 +74,25 @@ void analyzeTets()
 						{
 							//check that we don't add the particle itself to its neighbours and that we don't add one neighbours more than one time
 							if (particle->coordinates != particles[i]->coordinates && !isInside(particles[i]->neighbours_points, particle))
+							{
 								particles[i]->neighbours_points.push_back(particle);
-							new_tet->density += particle->density / 4;
-							new_tet->temperature += particle->temperature / 4;
-							new_tet->velocity += particle->velocity / 4;
-							//we exit the loop when we have 4 vertexes
-
-							if (image_corner == corner) continue;
-							auto tet = Tetrahedron();
-							tet.volume = new_tet->volume;
-							tet.circumcenter = new_tet->circumcenter;
-							tet.vectorB = calculateVectorB(tetrahedron, image_corner, new_tet->volume);
-							particle->tets.push_back(tet);
+								particle->tets.push_back(Tetrahedron(new_tet.volume, new_tet.circumcenter, calculateVectorB(tetrahedron, image_corner, new_tet.volume)));
+							}
+								
+							new_tet.density += particle->density / 4;
+							new_tet.temperature += particle->temperature / 4;
+							new_tet.velocity += particle->velocity / 4;
 							if (++vertex_count == 4) break;
 						}
 					}
-					particles[i]->tets.push_back(*new_tet); 
-					particle_volume += new_tet->volume;
+					particles[i]->tets.push_back(new_tet); 
 					break;
 				}
 			}
 		}
-		particles[i]->volume = particle_volume;
-		particles[i]->mass = particles[i]->volume * particles[i]->density;
-		if (iteration == 0) particles[i]->momentum = particles[i]->velocity * particles[i]->mass;
-		//copy missing data from particle to all it's images
-		for (int j = 0; j < 27; j++) {
-			particles_image[j + i * 27].mass = particles[i]->mass;
-			particles_image[j + i * 27].volume = particles[i]->volume;
-		}
 	}
 }
 
-void calcTempreture(int index)
-{
-	new_particles[index]->temperature = new_particles[index]->density * particles[index]->volume * pow(new_particles[index]->velocity_absolute, 2) / (bolzmana * 3);
-}
-
-void calcNewDensity(int index)
-{
-	double sum = 0;
-	for (auto tet : particles[index]->tets)
-	{
-		sum += tet.volume * (tet.vectorB * tet.velocity) * tet.density;
-	}
-	new_particles[index]->density = particles[index]->density + time_step * sum / particles[index]->volume;
-}
 
 double calcPressure(double density)
 {
@@ -134,7 +104,35 @@ double calcPressure(double density)
 	e = -1.5356e6;
 	f = 1.1584e-7;
 
-	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) + c * pow(density, 2) + d * density + e) / 1.66e9;
+	return (f * pow(density * 1.66e3, 5) + a * pow(density * 1.66e3, 4) + b * pow(density * 1.66e3, 3) +
+		c * pow(density * 1.66e3, 2) + d * density * 1.66e3 + e) / 1.66e9;
+}
+
+
+void calcTempreture()
+{
+	for (int i = 0; i < number_of_particles; i++)
+	{
+		double particle_volume = 0;
+		for (auto& tetrahedron : tets)
+		{
+			if (tetrahedron->hasVertex(particles[i]->coordinates)) particle_volume += calcTetVolume(tetrahedron);
+		}
+		particles[i]->volume = particle_volume;
+		particles[i]->mass = particles[i]->volume * particles[i]->density;
+		//particles[i]->temperature = particles[i]->mass * particles[i]->velocity * particles[i]->velocity / (bolzmana * 3);
+		particles[i]->temperature = calcPressure(particles[i]->density) * 1e6 / particles[i]->density / 208.13;
+	}
+}
+
+void calcNewDensity(int index)
+{
+	double sum = 0;
+	for (auto tet : particles[index]->tets)
+	{
+		sum += tet.volume * (tet.vectorB * tet.velocity) * tet.density;
+	}
+	new_particles[index]->density = particles[index]->density + time_step * sum / particles[index]->volume;
 }
 
 Point3 calcForce(int index)
@@ -167,20 +165,21 @@ Point3 calcForce(int index)
 	}
 
 	auto result = term1 + term2;
-
-	new_particles[index]->momentum = particle->momentum + result * time_step;
-	new_particles[index]->momentum_absolute = calculate_absolute_value(new_particles[index]->momentum);
 	return result;
 }
 
 void calcNewVelocity(int index)
 {
 	new_particles[index]->velocity = particles[index]->velocity + calcForce(index) * time_step / particles[index]->mass;
-	new_particles[index]->velocity_absolute = calculate_absolute_value(new_particles[index]->velocity);
 	system_velocity += new_particles[index]->velocity;
 }
 
-void calcNewPosition(int index)
+void calcNewPosition()
 {
-	new_particles[index]->coordinates = particles[index]->coordinates + (particles[index]->velocity + new_particles[index]->velocity) * time_step / 2;
+	system_velocity /= number_of_particles;
+	for (int i = 0; i < number_of_particles; i++)
+	{
+		new_particles[i]->velocity -= system_velocity;
+		new_particles[i]->coordinates = (particles[i]->coordinates + (particles[i]->velocity + new_particles[i]->velocity) * time_step / 2.0) % box_size;
+	}
 }

@@ -28,7 +28,7 @@ static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HPart
 
 static bool has_corner(vector<Tet3*>::value_type& tet, HParticle* particle, int* out_param_corner)
 {
-	for (int corner = 0; corner < 4; ++corner)
+	for (int corner = 0; corner < 4; corner++)
 	{
 		if (compare_coords(tet, corner, particle)) {
 			*out_param_corner = corner;
@@ -106,6 +106,11 @@ static bool operator!=(Point3 point1, Point3 point2)
 static double distance(const Point3& p0, const Point3& p1)
 {
 	return sqrt(pow(p1.x() - p0.x(), 2) + pow(p1.y() - p0.y(), 2) + pow(p1.z() - p0.z(), 2));
+}
+
+static Point3 mod(Point3 point)
+{
+	return Point3(fabs(point.x()), fabs(point.y()), fabs(point.z()));
 }
 
 

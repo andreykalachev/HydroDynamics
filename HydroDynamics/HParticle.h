@@ -14,19 +14,16 @@ public:
 		
 	}
 
-	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3 / 1.66e3), volume(0), temperature(300)
+	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3 / 1.66e3), volume(0), temperature(0)
 	{
 	}
 
 	Point3 coordinates;
 	Point3 velocity;
-	Point3 momentum;
 	double mass;
 	double density;
 	double volume;
 	double temperature;
-	double velocity_absolute;
-	double momentum_absolute;
 	vector<Tetrahedron> tets;
 	vector<HParticle*> neighbours_points;
 
@@ -56,10 +53,7 @@ public:
 	{
 		this->density = particle->density;
 		this->velocity = particle->velocity;
-		this->momentum = particle->momentum;
-		this->velocity_absolute = particle->velocity_absolute;
-		this->momentum_absolute = particle->momentum_absolute;
-		this->temperature = particle->temperature;
+		//this->temperature = particle->temperature;
 		this->coordinates = particle->coordinates;
 	}
 
@@ -68,17 +62,14 @@ public:
 		file << fixed;
 		file << "coords: (" << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << ")  \t";
 		file << scientific;
-		file << "vel: " << this->velocity_absolute << " \t" << " mom: " << this->momentum_absolute << " \t"
-			<< " mass:" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << " \t"
+		file << " mass:" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << " \t"
 			<< "vel: (" << this->velocity.x() << ", " << this->velocity.y() << ", " << this->velocity.z() << ")"
 			<< endl << "---------" << endl;
 	}
 
 	void display_for_plot(ofstream &file)
 	{
-		/*file << fixed << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t"
-			<< scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t"
-			<< this->velocity_absolute << " \t" << this->momentum_absolute << " \t" << this->mass << " \t" << this->temperature << " \t" << this->density << " \t";*/
+		//file << fixed << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
 		file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t";
 
 	}

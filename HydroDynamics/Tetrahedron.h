@@ -7,18 +7,23 @@ using namespace std;
 class Tetrahedron
 {
 public:
-	Tetrahedron(double Volume, double Density, double Temperature, Point3 Velocity, Point3 VectorB)
+	Tetrahedron(double Volume, Point3 Circumcenter, Point3 VectorB): density(0), temperature(0), velocity(0, 0, 0), vectorB(0,0,0)
 	{
-		density = Density;
 		volume = Volume;
-		temperature = Temperature;
-		velocity = Velocity;
+		circumcenter = Circumcenter;
 		vectorB = VectorB;
 	}
 
-	Tetrahedron(): density(0), volume(0), temperature(0), velocity(0,0,0), vectorB(0,0,0)
+	Tetrahedron(double Volume, Point3 Circumcenter) : density(0), temperature(0), velocity(0, 0, 0), vectorB(0,0,0), circumcenter(0,0,0)
+	{
+		volume = Volume;
+		circumcenter = Circumcenter;
+	}
+
+	Tetrahedron(): density(0), volume(0), temperature(0), velocity(0,0,0), vectorB(0, 0, 0), circumcenter(0, 0, 0)
 	{
 	}
+
 	Point3 circumcenter;
 	double density;
 	double volume;
