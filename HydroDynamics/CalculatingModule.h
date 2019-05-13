@@ -5,8 +5,8 @@
 //current iteration
 int iteration = 0;
 vector<Tet3*> tets;
-const int number_of_particles = 10;
-const double volume = 37.5;
+const int number_of_particles = 5;
+const double volume =  37.5;
 const double box_size = cbrt(volume);
 double time_step = 1;
 double elapsed_time = 0;
@@ -45,12 +45,23 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	auto y = -(_2->z() - _1->z())*(_3->x() - _1->x()) + (_3->z() - _1->z())*(_2->x() - _1->x());
 	auto z = -(_2->x() - _1->x())*(_3->y() - _1->y()) + (_3->x() - _1->x())*(_2->y() - _1->y());
 
-	return Point3(x, y, z) / (6 * tet_volume);
+	//return Point3(x, y, z) / (6 * tet_volume);
+	return Point3(x, y, z) / (2 * tet_volume);
+
+	//auto _0 = *tet->getCorner(corner);
+	//auto _1 = *tet->getCorner(positive_mod((corner + 1), 4));
+	//auto _2 = *tet->getCorner(positive_mod((corner + 2), 4));
+	//auto _3 = *tet->getCorner(positive_mod((corner + 3), 4));
+
+	//auto vector_b = _0 - (_1 + _2 + _3) / 3;
+	//auto s = calculate_area(_0, _1, _2) + calculate_area(_0, _2, _3) + calculate_area(_0, _1, _3) + calculate_area(_1, _2, _3);
+	//return vector_b / (2 * s);
 }
 
 //calculate particles' tetrahedrons, neighbors, volume, mass 
 void analyzeTets()
 {
+	//Point3 sum = Point3(0,0,0);
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		//loop for each tetrahedron
@@ -65,6 +76,7 @@ void analyzeTets()
 					auto vertex_count = 0;
 					auto new_tet = Tetrahedron(calcTetVolume(tetrahedron), tetrahedron->getCircumcenter());
 					new_tet.vectorB = calculateVectorB(tetrahedron, corner, new_tet.volume);
+					//sum += new_tet.vectorB;
 					//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
 					for (int j = 0; j < particles_image.size(); j++)
 					{
@@ -91,22 +103,8 @@ void analyzeTets()
 			}
 		}
 	}
+	//cout << sum.x() << "\t" << sum.y() << "\t" << sum.z() << endl;
 }
-
-
-//double calcPressure(double density)
-//{
-//	static double a, b, c, d, e, f;
-//	f = 1.1584 / 16.6;
-//	a = -1.86789 / 16.6;
-//	b = 1.9878 / 16.6;
-//	c = -9.6160 / 166;
-//	d = 8.2666 / 166;
-//	e = -1.5356 / 1660;
-//
-//	return (f * pow(density * 1.66, 5) + a * pow(density * 1.66, 4) + b * pow(density * 1.66, 3) 
-//		+ c * pow(density * 1.66, 2) + d * density * 1,66 + e);
-//}
 
 double calcPressure(double density)
 {

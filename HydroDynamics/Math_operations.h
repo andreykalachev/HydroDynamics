@@ -25,7 +25,6 @@ static bool compare_coords(vector<Tet3*>::value_type& tet, int tet_corner, HPart
 	return  *tet->getCorner(tet_corner) == particle->coordinates;
 }
 
-
 static bool has_corner(vector<Tet3*>::value_type& tet, HParticle* particle, int* out_param_corner)
 {
 	for (int corner = 0; corner < 4; corner++)
@@ -131,4 +130,16 @@ static Point3 createRandomPoint(double min, double max)
 	auto z = fRand(min, max);
 
 	return Point3(fRand(min, max), fRand(min, max), fRand(min, max));
+}
+
+
+static double calculate_area(Point3 _1, Point3 _2, Point3 _3)
+{
+	auto a = calculate_absolute_value(_1 - _2);
+	auto b = calculate_absolute_value(_2 - _3);
+	auto c = calculate_absolute_value(_3 - _1);
+
+	auto p = (a + b + c) / 2.0;
+
+	return sqrt(p * (p - a) * (p - b) * (p - c));
 }
