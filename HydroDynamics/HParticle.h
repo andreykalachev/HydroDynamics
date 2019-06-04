@@ -55,8 +55,6 @@ public:
 	void copy(HParticle *particle)
 	{
 		this->density = particle->density;
-		this->velocity = particle->velocity;
-		this->coordinates = particle->coordinates;
 	}
 
 	void display(ofstream &file)
