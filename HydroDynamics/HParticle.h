@@ -11,11 +11,14 @@ public:
 
 	HParticle()
 	{
-		
+		tets = vector<Tetrahedron>();
+		neighbours_points = vector<HParticle*>();
 	}
 
 	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3 / 1.66e3), volume(0), temperature(0)
 	{
+		tets = vector<Tetrahedron>();
+		neighbours_points = vector<HParticle*>();
 	}
 
 	Point3 coordinates;
@@ -29,15 +32,15 @@ public:
 
 	void clear()
 	{
-		tets.clear();
-		neighbours_points.clear();
+		tets = vector<Tetrahedron>();
+		neighbours_points = vector<HParticle*>();
 	}
 
 	//return a copy with new coordinates
 	HParticle get_copy(double x, double y, double z)
 	{
 		auto new_particle = *this;
-		new_particle.coordinates = Point3 (x,y,z);
+		new_particle.coordinates.init(Point3(x, y, z));
 		return new_particle;
 	}
 
@@ -53,7 +56,6 @@ public:
 	{
 		this->density = particle->density;
 		this->velocity = particle->velocity;
-		//this->temperature = particle->temperature;
 		this->coordinates = particle->coordinates;
 	}
 
@@ -71,6 +73,7 @@ public:
 	{
 		//file << scientific << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
 		file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t";
+		//file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t" << this->temperature << " \t";
 
 	}
 };
@@ -78,7 +81,7 @@ public:
 
 static bool isInside(vector<HParticle*> particles, HParticle *p)
 {
-	for (auto* particle : particles)
+	for (auto particle : particles)
 	{
 		if (particle == p) return true;
 	}

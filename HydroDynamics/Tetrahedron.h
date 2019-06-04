@@ -4,7 +4,7 @@
 using namespace FADE3D;
 using namespace std;
 
-class Tetrahedron
+struct Tetrahedron
 {
 public:
 	Tetrahedron(double Volume, Point3 Circumcenter, Point3 VectorB): density(0), temperature(0), velocity(0, 0, 0), vectorB(0,0,0)
@@ -31,7 +31,7 @@ public:
 	Point3 velocity;
 	Point3 vectorB;
 
-	bool is_equal(Tetrahedron tet)
+	bool has_equal_circumcenter(Tetrahedron tet)
 	{
 		return tet.circumcenter == this->circumcenter;
 	}
@@ -44,3 +44,13 @@ public:
 	}
 
 };
+
+
+static bool isTetInside(vector<Tetrahedron> tets, Tetrahedron tet)
+{
+	for (auto t : tets)
+	{
+		if (tet.circumcenter == t.circumcenter && tet.vectorB == t.vectorB) return true;
+	}
+	return false;
+}

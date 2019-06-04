@@ -116,19 +116,11 @@ static Point3 mod(Point3 point)
 //additional operations
 static HParticle* createRandomParticle(double min, double max)
 {
-	auto x = fRand(min, max);
-	auto y = fRand(min, max);
-	auto z = fRand(min, max);
-
 	return new HParticle(fRand(min, max), fRand(min, max), fRand(min, max));
 }
 
 static Point3 createRandomPoint(double min, double max)
 {
-	auto x = fRand(min, max);
-	auto y = fRand(min, max);
-	auto z = fRand(min, max);
-
 	return Point3(fRand(min, max), fRand(min, max), fRand(min, max));
 }
 
