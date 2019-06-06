@@ -6,10 +6,10 @@
 //current iteration
 int iteration = 0;
 vector<Tet3*> delaunay_tets;
-const int number_of_particles = 10;
+const int number_of_particles = 20;
 const double volume =  37.5;
 const double box_size = cbrt(volume);
-double time_step = 1;
+double time_step = 0.04;
 double elapsed_time = 0;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
@@ -40,7 +40,7 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	auto _2 = *tet->getCorner(positive_mod((corner + 2), 4));
 	auto _3 = *tet->getCorner(positive_mod((corner + 3), 4));
 
-	auto vector_b = _0 - (_1 + _2 + _3) / 3;
+	auto vector_b = _0 - (_1 + _2 + _3) / 3.0;
 	auto s = calculate_area(_0, _1, _2) + calculate_area(_0, _2, _3) + calculate_area(_0, _1, _3) + calculate_area(_1, _2, _3);
 	return vector_b / (2 * s);
 }
@@ -111,7 +111,7 @@ double calcPressure(double density, Point3 velocity)
 	/*return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) +
 		c * pow(density, 2) + d * density + e) / 1.66e9;*/
 
-	return density * pow(calculate_absolute_value(velocity), 2) / 3 / 1.66e9;
+	return density * pow(calculate_absolute_value(velocity), 2) / 3.0 / 1.66e9;
 }
 
 void calcTempreture()
@@ -150,7 +150,7 @@ Point3 calcForce1(int index)
 	for (auto tet : particles[index]->tets)
 	{
 		term1 += tet.volume *  (calcPressure(tet.density, particles[index]->velocity) * tet.vectorB + 
-			particles[index]->density * tet.vectorB * tet.velocity * (4 * tet.velocity - particles[index]->velocity) / 4);
+			particles[index]->density * tet.vectorB * tet.velocity * (4 * tet.velocity - particles[index]->velocity) / 4.0);
 
 		for (auto neighbor : particles[index]->neighbours_points)
 		{
@@ -164,7 +164,7 @@ Point3 calcForce1(int index)
 					term2 += tet.temperature * tet.volume / neighbor->temperature *
 						(bulk_viscosity * scalar_product1 * tet.vectorB +
 							shear_viscosity * (scalar_product3 * n_tet.vectorB - 2.0 / 3.0 * scalar_product1 * tet.vectorB) +
-							((4 * tet.velocity - particles[index]->velocity) / 4 - n_tet.velocity) * n_tet.vectorB * tet.vectorB);
+							((4 * tet.velocity - particles[index]->velocity) / 4.0 - n_tet.velocity) * n_tet.vectorB * tet.vectorB);
 					break;
 				}
 			}
@@ -180,7 +180,7 @@ double calcForce2(int index)
 
 	for (auto tet : particles[index]->tets)
 	{
-		term1 += tet.volume * particles[index]->density * tet.vectorB * tet.vectorB / (4 * particles[index]->mass);
+		term1 += tet.volume * particles[index]->density * tet.vectorB * tet.vectorB;
 
 		for (auto neighbor : particles[index]->neighbours_points)
 		{
@@ -194,7 +194,7 @@ double calcForce2(int index)
 			}
 		}
 	}
-	return  term1 + term2;
+	return  term1 / (4 * particles[index]->mass) + term2;
 }
 
 void substractAvgVel()
@@ -202,8 +202,9 @@ void substractAvgVel()
 	*system_velocity = Point3(0,0,0);
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		*system_velocity += particles[i]->velocity / number_of_particles;
+		*system_velocity += particles[i]->velocity;
 	}
+	*system_velocity /= number_of_particles;
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		particles[i]->velocity -= *system_velocity;
