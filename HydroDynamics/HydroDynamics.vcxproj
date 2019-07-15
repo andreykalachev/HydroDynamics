@@ -172,6 +172,7 @@
     <ClInclude Include="fade3d\include_fade3d\Visualizer3.h" />
     <ClInclude Include="HParticle.h" />
     <ClInclude Include="Math_operations.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Tetrahedron.h" />

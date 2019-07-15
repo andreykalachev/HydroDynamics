@@ -99,6 +99,9 @@
     <ClInclude Include="Math_operations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
