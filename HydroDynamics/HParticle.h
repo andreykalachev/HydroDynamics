@@ -69,7 +69,7 @@ public:
 
 	void display_coords(ofstream &file)
 	{
-		file << scientific << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
+		file << fixed << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
 	}
 
 	void display_velocity(ofstream &file)

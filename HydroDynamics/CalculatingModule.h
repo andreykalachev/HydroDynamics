@@ -6,10 +6,10 @@
 //current iteration
 int iteration = 0;
 vector<Tet3*> delaunay_tets;
-const int number_of_particles = 100;
-const double volume = 37.5 * 100;
+const int number_of_particles = 10;
+const double volume = 37.5 * number_of_particles;
 const double box_size = cbrt(volume);
-double time_step = 0.1;
+double time_step = 0.01;
 double elapsed_time = 0;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
