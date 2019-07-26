@@ -67,12 +67,30 @@ public:
 			<< endl << "---------" << endl;
 	}
 
-	void display_for_plot(ofstream &file)
+	void display_coords(ofstream &file)
 	{
-		//file << scientific << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
-		file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t";
-		//file << scientific << this->velocity.x() << " \t" << this->velocity.y() << " \t" << this->velocity.z() << " \t" << this->temperature << " \t";
+		file << scientific << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
+	}
 
+	void display_velocity(ofstream &file)
+	{
+		file << fixed << this->velocity.x() * 1e3 << " \t" << this->velocity.y() * 1e3 << " \t" << this->velocity.z() * 1e3 << " \t";
+	}
+
+	void display_density(ofstream &file)
+	{
+		file << fixed << this->density * 1.66e3 << " \t";
+	}
+
+	void display_velocity_fluctuations(ofstream &file, Point3 *system_velocity)
+	{
+		file << fixed << (this->velocity.x() - system_velocity->x()) * 1e3 << " \t" << 
+			(this->velocity.y() - system_velocity->y()) * 1e3 << " \t" << (this->velocity.z() - system_velocity->z()) * 1e3 << " \t";
+	}
+
+	void display_density_fluctuations(ofstream &file, double system_density)
+	{
+		file << fixed << (this->density - system_density) * 1.66e3 << " \t";
 	}
 };
 

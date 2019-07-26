@@ -6,16 +6,17 @@
 //current iteration
 int iteration = 0;
 vector<Tet3*> delaunay_tets;
-const int number_of_particles = 10;
-const double volume = 37.5;
+const int number_of_particles = 100;
+const double volume = 37.5 * 100;
 const double box_size = cbrt(volume);
-double time_step = 1;
+double time_step = 0.1;
 double elapsed_time = 0;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
 const double b_const = 1.38064852 / 160000 ;
 //total system velocity
 auto system_velocity = new Point3(0, 0, 0);
+double system_density = 0;
 vector<HParticle*> particles(number_of_particles);
 //images of particles to clrate periodic conditions
 vector<HParticle> particles_image(0);
@@ -24,6 +25,7 @@ vector<HParticle*> new_particles(number_of_particles);
 //random for thermal fluctiations
 default_random_engine generator;
 normal_distribution<double> distribution(0.0, 1.0);
+normal_distribution<double> velocity_distribution(0.0, 20e-3);
 
 double calcTetVolume(vector<Tet3*>::value_type& tet)
 {
@@ -52,8 +54,10 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 //calculate particles' tetrahedrons, neighbors, volume, mass 
 void analyzeTets()
 {
+	system_density = 0;
 	for (int i = 0; i < number_of_particles; i++)
 	{
+		system_density += particles[i]->density / number_of_particles;
 		double particle_volume = 0;
 		//loop for each tetrahedron
 		for (auto tetrahedron : delaunay_tets)
@@ -113,17 +117,18 @@ double calcPressure(double density, Point3 velocity)
 	density *= 1.66e3;
 	velocity *= 1000;
 
-	/*return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) +
-		c * pow(density, 2) + d * density + e) / 1.66e9;*/
+	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) +
+		c * pow(density, 2) + d * density + e) / 1.66e9;
 
-	return density * pow(calculate_absolute_value(velocity), 2) / 3.0 / 1.66e9;
+	//return density * pow(calculate_absolute_value(velocity), 2) / 3.0 / 1.66e9;
 }
 
 void calcTempreture()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		particles[i]->temperature = calcPressure(particles[i]->density, particles[i]->velocity) * 1e6 / particles[i]->density / 208.13;
+		//particles[i]->temperature = calcPressure(particles[i]->density, particles[i]->velocity) * 1e6 / particles[i]->density / 208.13;
+		particles[i]->temperature = 300;
 	}
 }
 
@@ -150,16 +155,16 @@ void calcNewPosition()
 
 Point3 calcForce1(int index)
 {
-	auto term1 = Point3(0, 0, 0), term2 = Point3(0, 0, 0), thermal_fluct = Point3(0, 0, 0);
+	auto term1 = Point3(0, 0, 0), term2 = Point3(0, 0, 0), thermal_fluct = Point3(0, 0, 0), p1 = Point3(0, 0, 0), p2 = Point3(0, 0, 0);
 
 	for (auto tet : particles[index]->tets)
 	{
-		term1 += tet.volume *  (calcPressure(tet.density, particles[index]->velocity) * tet.vectorB +
+		term1 += tet.volume * (calcPressure(tet.density, particles[index]->velocity) * tet.vectorB +
 			particles[index]->density * tet.vectorB * tet.velocity * (4 * tet.velocity - particles[index]->velocity) / 4.0);
 
 		thermal_fluct += tet.vectorB * (sqrt(4 * b_const*tet.temperature*shear_viscosity*tet.volume) *
-			((tet.gaussMatrix + tet.gaussMatrix.getTransported()) / 2.0 - multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3)) +
-			sqrt(3 * b_const*tet.temperature*bulk_viscosity*tet.volume) * multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3)) / (tet.volume * sqrt(time_step / 2));
+			((tet.gaussMatrix + tet.gaussMatrix.getTransported()) / 2.0 - multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3.0)) +
+			sqrt(3 * b_const*tet.temperature*bulk_viscosity*tet.volume) * multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3.0)) / (tet.volume * sqrt(time_step / 2));
 
 		for (auto neighbor : particles[index]->neighbours_points)
 		{

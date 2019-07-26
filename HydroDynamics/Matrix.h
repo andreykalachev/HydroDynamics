@@ -1,5 +1,7 @@
 #pragma once
 #include <random>
+#include <time.h>
+#include <chrono>
 
 struct Matrix
 {
@@ -20,6 +22,8 @@ struct Matrix
 
 	void generateRandom(std::default_random_engine generator, std::normal_distribution<double> distribution)
 	{
+		unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+		generator.seed(seed);
 		for (int i = 0; i < 3; i++)
 		{
 			for (int j = 0; j < 3; j++)
