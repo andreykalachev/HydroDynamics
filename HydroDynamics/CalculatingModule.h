@@ -7,9 +7,10 @@
 int iteration = 0;
 vector<Tet3*> delaunay_tets;
 const int number_of_particles = 10;
-const double volume = 37.5 * number_of_particles;
+const double volume = 37.5 * number_of_particles / 4;
+double particles_volume = 0;
 const double box_size = cbrt(volume);
-double time_step = 0.01;
+double time_step = 0.001;
 double elapsed_time = 0;
 const double shear_viscosity = 9.0898 / 166;
 const double bulk_viscosity = 3.0272 / 166;
@@ -25,7 +26,7 @@ vector<HParticle*> new_particles(number_of_particles);
 //random for thermal fluctiations
 default_random_engine generator;
 normal_distribution<double> distribution(0.0, 1.0);
-normal_distribution<double> velocity_distribution(0.0, 20e-3);
+normal_distribution<double> velocity_distribution(0.0, 10e-3);
 
 double calcTetVolume(vector<Tet3*>::value_type& tet)
 {
@@ -54,7 +55,7 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 //calculate particles' tetrahedrons, neighbors, volume, mass 
 void analyzeTets()
 {
-	system_density = 0;
+	particles_volume = 0;
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		system_density += particles[i]->density / number_of_particles;
@@ -100,6 +101,7 @@ void analyzeTets()
 			}
 		}
 		particles[i]->volume = particle_volume;
+		particles_volume += particles[i]->volume;
 		particles[i]->mass = particles[i]->volume * particles[i]->density;
 	}
 }
@@ -119,8 +121,6 @@ double calcPressure(double density, Point3 velocity)
 
 	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) +
 		c * pow(density, 2) + d * density + e) / 1.66e9;
-
-	//return density * pow(calculate_absolute_value(velocity), 2) / 3.0 / 1.66e9;
 }
 
 void calcTempreture()
@@ -128,12 +128,13 @@ void calcTempreture()
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		//particles[i]->temperature = calcPressure(particles[i]->density, particles[i]->velocity) * 1e6 / particles[i]->density / 208.13;
-		particles[i]->temperature = 300;
+		particles[i]->temperature = 800;
 	}
 }
 
 void calcNewDensity()
 {
+	system_density = 0;
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		double sum = 0;
@@ -142,6 +143,7 @@ void calcNewDensity()
 			sum += tet.volume * (tet.vectorB * tet.velocity) * tet.density;
 		}
 		new_particles[i]->density = particles[i]->density + time_step * sum / particles[i]->volume;
+		system_density += new_particles[i]->density * particles[i]->volume / particles_volume;
 	}
 }
 
