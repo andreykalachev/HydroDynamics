@@ -15,7 +15,7 @@ public:
 		neighbours_points = vector<HParticle*>();
 	}
 
-	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(996.3 / 1.66e3), volume(0), temperature(0)
+	HParticle(double x, double y, double z) : coordinates(x, y, z), mass(0), density(0.844), volume(0), temperature(86.5)
 	{
 		tets = vector<Tetrahedron>();
 		neighbours_points = vector<HParticle*>();
@@ -52,21 +52,6 @@ public:
 		return new_particle;
 	}
 
-	void copy(HParticle *particle)
-	{
-		this->density = particle->density;
-	}
-
-	void display(ofstream &file)
-	{
-		file << fixed;
-		file << "coords: (" << this->coordinates.x() << ", " << this->coordinates.y() << ", " << this->coordinates.z() << ")  \t";
-		file << scientific;
-		file << " mass:" << this->mass << " \t" << " temp:" << this->temperature << " \t" << "density:" << this->density << " \t"
-			<< "vel: (" << this->velocity.x() << ", " << this->velocity.y() << ", " << this->velocity.z() << ")"
-			<< endl << "---------" << endl;
-	}
-
 	void display_coords(ofstream &file)
 	{
 		file << fixed << this->coordinates.x() << " \t" << this->coordinates.y() << " \t" << this->coordinates.z() << " \t";
@@ -74,7 +59,7 @@ public:
 
 	void display_velocity(ofstream &file)
 	{
-		file << fixed << this->velocity.x() * 1e3 << " \t" << this->velocity.y() * 1e3 << " \t" << this->velocity.z() * 1e3 << " \t";
+		file << fixed << this->velocity.x() * 1e2 << " \t" << this->velocity.y() * 1e2 << " \t" << this->velocity.z() * 1e2 << " \t";
 	}
 
 	void display_density(ofstream &file)
@@ -84,8 +69,8 @@ public:
 
 	void display_velocity_fluctuations(ofstream &file, Point3 *system_velocity)
 	{
-		file << fixed << (this->velocity.x() - system_velocity->x()) * 1e3 << " \t" << 
-			(this->velocity.y() - system_velocity->y()) * 1e3 << " \t" << (this->velocity.z() - system_velocity->z()) * 1e3 << " \t";
+		file << fixed << (this->velocity.x() - system_velocity->x()) * 1e2 << " \t" << 
+			(this->velocity.y() - system_velocity->y()) * 1e2 << " \t" << (this->velocity.z() - system_velocity->z()) * 1e2 << " \t";
 	}
 
 	void display_density_fluctuations(ofstream &file, double system_density)

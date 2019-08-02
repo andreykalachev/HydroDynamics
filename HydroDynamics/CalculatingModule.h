@@ -3,32 +3,44 @@
 #include "Math_operations.h"
 #include "Tetrahedron.h"
 
+/*
+ * 1 amu	=	1.6605e-27 kg
+ * 1 å		=	1e-10 m
+ * 1 ps		=	1e-12 s
+ * 1 pa		=	6.02e-8 reduced units
+ * 1 amt	=	6.1e-3 reduced units
+ * 1 m/s	=	1e-2 å/ps
+ */
+
 //current iteration
 int iteration = 0;
+//for triangulation
 vector<Tet3*> delaunay_tets;
-const int number_of_particles = 10;
-const double volume = 37.5 * number_of_particles / 4;
-double particles_volume = 0;
-const double box_size = cbrt(volume);
-double time_step = 0.001;
+const int number_of_particles = 27;
+//volume of the investigated box
+const double volume = 1000 * number_of_particles;
+//total volume of all particles (more than box volume because particles overlap)
+double total_particles_volume = 0;
+const double box_length = cbrt(volume);
+double time_step = 0.05;
 double elapsed_time = 0;
-const double shear_viscosity = 9.0898 / 166;
-const double bulk_viscosity = 3.0272 / 166;
-const double b_const = 1.38064852 / 160000 ;
+const double shear_viscosity = 5.47;
+const double bulk_viscosity = 1.82;
+//boltzmann constant
+const double b_const = 0.8314;
 //total system velocity
 auto system_velocity = new Point3(0, 0, 0);
 double system_density = 0;
 vector<HParticle*> particles(number_of_particles);
-//images of particles to clrate periodic conditions
+//images of particles to create periodic conditions
 vector<HParticle> particles_image(0);
-//values for next iteration are stored in this vector
-vector<HParticle*> new_particles(number_of_particles);
-//random for thermal fluctiations
+//particles' density on the next step
+vector<double> new_density(number_of_particles);
+//random for thermal fluctuations
 default_random_engine generator;
 normal_distribution<double> distribution(0.0, 1.0);
-normal_distribution<double> velocity_distribution(0.0, 10e-3);
 
-double calcTetVolume(vector<Tet3*>::value_type& tet)
+double calc_tet_volume(vector<Tet3*>::value_type& tet)
 {
 	double tet_volume = (tet->getCorner(0)->x() - tet->getCorner(1)->x()) * (tet->getCorner(2)->y() - tet->getCorner(1)->y()) * (tet->getCorner(3)->z() - tet->getCorner(1)->z())
 		+ (tet->getCorner(2)->x() - tet->getCorner(1)->x()) * (tet->getCorner(3)->y() - tet->getCorner(1)->y()) * (tet->getCorner(0)->z() - tet->getCorner(1)->z()) +
@@ -40,7 +52,7 @@ double calcTetVolume(vector<Tet3*>::value_type& tet)
 	return fabs(tet_volume / 6.0);
 }
 
-Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_volume)
+Point3 calculate_vector_b(vector<Tet3*>::value_type& tet, int corner, double tet_volume)
 {
 	auto _0 = *tet->getCorner(corner);
 	auto _1 = *tet->getCorner(positive_mod((corner + 1), 4));
@@ -52,10 +64,14 @@ Point3 calculateVectorB(vector<Tet3*>::value_type& tet, int corner, double tet_v
 	return vector_b / (2 * s);
 }
 
-//calculate particles' tetrahedrons, neighbors, volume, mass 
-void analyzeTets()
+/*
+ * analyze which tetrahedrons compose each particle
+ * calculate all important parameters for these tetrahedrons
+ * for each particle create list of its neighbors
+ */
+void analyze_tets()
 {
-	particles_volume = 0;
+	total_particles_volume = 0;
 	for (int i = 0; i < number_of_particles; i++)
 	{
 		system_density += particles[i]->density / number_of_particles;
@@ -70,8 +86,8 @@ void analyzeTets()
 				{
 					//number of vertexes that we have taken into account (we need only 4 for each tetrahedron)
 					auto vertex_count = 0;
-					auto new_tet = Tetrahedron(calcTetVolume(tetrahedron), tetrahedron->getCircumcenter());
-					new_tet.vectorB = calculateVectorB(tetrahedron, corner, new_tet.volume);
+					auto new_tet = Tetrahedron(calc_tet_volume(tetrahedron), tetrahedron->getCircumcenter());
+					new_tet.vectorB = calculate_vector_b(tetrahedron, corner, new_tet.volume);
 					new_tet.gaussMatrix.generateRandom(generator, distribution);
 					//check all other corners of the tetrahedrons and add if there are any particles in these corners add them to the neighbors
 					for (int j = 0; j < particles_image.size(); j++)
@@ -85,7 +101,7 @@ void analyzeTets()
 							{
 								if (!isInside(particles[i]->neighbours_points, particle)) particles[i]->neighbours_points.push_back(particle);
 
-								auto tt = Tetrahedron(new_tet.volume, new_tet.circumcenter, calculateVectorB(tetrahedron, image_corner, new_tet.volume));
+								auto tt = Tetrahedron(new_tet.volume, new_tet.circumcenter, calculate_vector_b(tetrahedron, image_corner, new_tet.volume));
 								if (!isTetInside(particle->tets, tt)) particle->tets.push_back(tt);
 							}
 							new_tet.density += particle->density / 4.0;
@@ -101,38 +117,40 @@ void analyzeTets()
 			}
 		}
 		particles[i]->volume = particle_volume;
-		particles_volume += particles[i]->volume;
+		total_particles_volume += particles[i]->volume;
 		particles[i]->mass = particles[i]->volume * particles[i]->density;
 	}
 }
 
-double calcPressure(double density, Point3 velocity)
+//https://doi.org/10.1063/1.4738763
+double calc_pressure(double density)
 {
-	static double a, b, c, d, e, f;
-	a = -1.86789e-4;
-	b = 1.9878e-1;
-	c = -9.6160e1;
-	d = 8.2666e4;
-	e = -1.5356e6;
-	f = 1.1584e-7;
+	auto isothermal_compressibility = 1.7e4 / 6.1e-3;
+	auto thermal_expansivity = 3.6e3;
+	auto initial_density = 0.844;
+	auto temperature = 86.5;
+	auto result = density / initial_density / isothermal_compressibility + thermal_expansivity * temperature / isothermal_compressibility;
 
-	density *= 1.66e3;
-	velocity *= 1000;
+	// 1 amt = 6.1e-3 reduced units
+	//in theory pressure should be 66atm
 
-	return (f * pow(density, 5) + a * pow(density, 4) + b * pow(density, 3) +
-		c * pow(density, 2) + d * density + e) / 1.66e9;
+	//at the moment is set to constant
+	result = 66 * 6.1e-3;
+
+	return result;
 }
 
-void calcTempreture()
+//https://doi.org/10.1063/1.4738763
+void calc_tempreture()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		//particles[i]->temperature = calcPressure(particles[i]->density, particles[i]->velocity) * 1e6 / particles[i]->density / 208.13;
-		particles[i]->temperature = 800;
+		//at the moment is set to constant
+		particles[i]->temperature = 86.5;
 	}
 }
 
-void calcNewDensity()
+void calc_new_density()
 {
 	system_density = 0;
 	for (int i = 0; i < number_of_particles; i++)
@@ -142,26 +160,26 @@ void calcNewDensity()
 		{
 			sum += tet.volume * (tet.vectorB * tet.velocity) * tet.density;
 		}
-		new_particles[i]->density = particles[i]->density + time_step * sum / particles[i]->volume;
-		system_density += new_particles[i]->density * particles[i]->volume / particles_volume;
+		new_density[i] = particles[i]->density + time_step * sum / particles[i]->volume;
+		system_density += new_density[i] * particles[i]->volume / total_particles_volume;
 	}
 }
 
-void calcNewPosition()
+void calc_new_position()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		particles[i]->coordinates = (particles[i]->coordinates + particles[i]->velocity * time_step / 2.0) % box_size;
+		particles[i]->coordinates = (particles[i]->coordinates + particles[i]->velocity * time_step / 2.0) % box_length;
 	}
 }
 
-Point3 calcForce1(int index)
+Point3 calc_force1(int index)
 {
 	auto term1 = Point3(0, 0, 0), term2 = Point3(0, 0, 0), thermal_fluct = Point3(0, 0, 0), p1 = Point3(0, 0, 0), p2 = Point3(0, 0, 0);
 
 	for (auto tet : particles[index]->tets)
 	{
-		term1 += tet.volume * (calcPressure(tet.density, particles[index]->velocity) * tet.vectorB +
+		term1 += tet.volume * (calc_pressure(tet.density) * tet.vectorB +
 			particles[index]->density * tet.vectorB * tet.velocity * (4 * tet.velocity - particles[index]->velocity) / 4.0);
 
 		thermal_fluct += tet.vectorB * (sqrt(4 * b_const*tet.temperature*shear_viscosity*tet.volume) *
@@ -190,7 +208,7 @@ Point3 calcForce1(int index)
 	return (term1 + term2 + thermal_fluct) / particles[index]->mass;
 }
 
-double calcForce2(int index)
+double calc_force2(int index)
 {
 	double term1 = 0, term2 = 0;
 
@@ -213,7 +231,8 @@ double calcForce2(int index)
 	return  term1 / (4 * particles[index]->mass) + term2;
 }
 
-void substractAvgVel()
+//calculate average system velocity and subtract it from every particle velocity (necessary because of the periodic conditions)
+void subtract_avg_velocity()
 {
 	*system_velocity = Point3(0, 0, 0);
 	for (int i = 0; i < number_of_particles; i++)
@@ -227,29 +246,31 @@ void substractAvgVel()
 	}
 }
 
-void calcNewVelocityL()
+void calc_new_velocity_l()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		particles[i]->velocity = particles[i]->velocity + calcForce1(i) * time_step / 2;
+		particles[i]->velocity = particles[i]->velocity + calc_force1(i) * time_step / 2;
 	}
-	substractAvgVel();
+	subtract_avg_velocity();
 }
 
-void calcNewVelocityO()
+void calc_new_velocity_o()
 {
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		particles[i]->velocity = particles[i]->velocity * exp(calcForce2(i) * time_step);
+		particles[i]->velocity = particles[i]->velocity * exp(calc_force2(i) * time_step);
 	}
-	substractAvgVel();
+	subtract_avg_velocity();
 }
 
+//LOD integration scheme (BAOAB scheme)
+//https://doi.org/10.1063/1.5030034
 void lod()
 {
-	calcNewVelocityL();
-	calcNewPosition();
-	calcNewVelocityO();
-	calcNewPosition();
-	calcNewVelocityL();
+	calc_new_velocity_l();
+	calc_new_position();
+	calc_new_velocity_o();
+	calc_new_position();
+	calc_new_velocity_l();
 }
