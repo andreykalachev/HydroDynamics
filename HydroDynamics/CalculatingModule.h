@@ -16,13 +16,13 @@
 int iteration = 0;
 //for triangulation
 vector<Tet3*> delaunay_tets;
-const int number_of_particles = 27;
+const int number_of_particles = 216;
 //volume of the investigated box
-const double volume = 1000 * number_of_particles;
+const double volume = 1000 * number_of_particles / 4;
 //total volume of all particles (more than box volume because particles overlap)
 double total_particles_volume = 0;
 const double box_length = cbrt(volume);
-double time_step = 0.05;
+double time_step = 0.005;
 double elapsed_time = 0;
 const double shear_viscosity = 5.47;
 const double bulk_viscosity = 1.82;
