@@ -22,7 +22,7 @@ const double volume = 1000 * number_of_particles / 4;
 //total volume of all particles (more than box volume because particles overlap)
 double total_particles_volume = 0;
 const double box_length = cbrt(volume);
-double time_step = 0.005;
+double time_step = 0.05;
 double elapsed_time = 0;
 const double shear_viscosity = 5.47;
 const double bulk_viscosity = 1.82;
@@ -36,9 +36,11 @@ vector<HParticle*> particles(number_of_particles);
 vector<HParticle> particles_image(0);
 //particles' density on the next step
 vector<double> new_density(number_of_particles);
+vector<double> temperature(number_of_particles);
 //random for thermal fluctuations
 default_random_engine generator;
 normal_distribution<double> distribution(0.0, 1.0);
+double system_temperature = 0;
 
 double calc_tet_volume(vector<Tet3*>::value_type& tet)
 {
@@ -123,19 +125,17 @@ void analyze_tets()
 }
 
 //https://doi.org/10.1063/1.4738763
-double calc_pressure(double density)
+double calc_pressure(int index)
 {
 	auto isothermal_compressibility = 1.7e4 / 6.1e-3;
 	auto thermal_expansivity = 3.6e3;
 	auto initial_density = 0.844;
-	auto temperature = 86.5;
-	auto result = density / initial_density / isothermal_compressibility + thermal_expansivity * temperature / isothermal_compressibility;
+	auto result = particles[index]->density / initial_density / isothermal_compressibility + thermal_expansivity * particles[index]->temperature / isothermal_compressibility;
 
 	// 1 amt = 6.1e-3 reduced units
 	//in theory pressure should be 66atm
 
-	//at the moment is set to constant
-	result = 66 * 6.1e-3;
+	//auto result = 66 * 6.1e-3;
 
 	return result;
 }
@@ -143,10 +143,29 @@ double calc_pressure(double density)
 //https://doi.org/10.1063/1.4738763
 void calc_tempreture()
 {
+	system_temperature = 0;
+	/*for (int i = 0; i < number_of_particles; i++)
+	{
+		double particle_volume = 0;
+		for (auto tetrahedron : delaunay_tets)
+		{
+			for (int corner = 0; corner < 4; corner++)
+			{
+				if (compare_coords(tetrahedron, corner, particles[i]))
+				{
+					particle_volume += calc_tet_volume(tetrahedron); break;
+				}
+			}
+		}
+		particles[i]->volume = particle_volume;
+	}*/
+
+
 	for (int i = 0; i < number_of_particles; i++)
 	{
-		//at the moment is set to constant
+		//temperature[i] = particles[i]->volume * particles[i]->density * particles[i]->velocity * particles[i]->velocity / (3 * b_const); 
 		particles[i]->temperature = 86.5;
+		system_temperature += temperature[i] * particles[i]->volume / total_particles_volume;
 	}
 }
 
@@ -182,7 +201,8 @@ Point3 calc_force1(int index)
 		term1 += tet.volume * (calc_pressure(tet.density) * tet.vectorB +
 			particles[index]->density * tet.vectorB * tet.velocity * (4 * tet.velocity - particles[index]->velocity) / 4.0);
 
-		thermal_fluct += tet.vectorB * (sqrt(4 * b_const*tet.temperature*shear_viscosity*tet.volume) *
+		//sometimes because of the triangulation tetrahedrons are very small => thermal fluctuations are enormous. In this situations we don't take them into account
+		if (tet.volume > 1) thermal_fluct += tet.vectorB * (sqrt(4 * b_const*tet.temperature*shear_viscosity*tet.volume) *
 			((tet.gaussMatrix + tet.gaussMatrix.getTransported()) / 2.0 - multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3.0)) +
 			sqrt(3 * b_const*tet.temperature*bulk_viscosity*tet.volume) * multiply_by_identity_matrix(tet.gaussMatrix.getDiagonalSum() / 3.0)) / (tet.volume * sqrt(time_step / 2));
 
